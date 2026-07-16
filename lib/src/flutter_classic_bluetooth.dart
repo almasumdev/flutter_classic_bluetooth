@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'btc_uuid.dart';
 import 'btc_reconnecting_connection.dart';
 import 'platform_interface.dart';
@@ -434,12 +436,14 @@ class FlutterClassicBluetooth {
   // ── Validation ───────────────────────────────────────────────────────
 
   void _validateAddress(String address) {
+    if (Platform.isIOS) return;
     if (!_macAddressRegex.hasMatch(address)) {
       throw BtcAddressException(address);
     }
   }
 
   void _validateUuid(String uuid) {
+    if (Platform.isIOS) return;
     if (!_uuidRegex.hasMatch(uuid)) {
       throw BtcUuidException(uuid);
     }
