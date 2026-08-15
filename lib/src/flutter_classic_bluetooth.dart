@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'btc_uuid.dart';
@@ -297,9 +298,9 @@ class FlutterClassicBluetooth {
   /// Returns a [BtcConnection] for reading/writing data.
   ///
   /// If [timeout] is provided, the attempt fails with a [BtcTimeoutException]
-  /// when it does not complete in time. Note: the native connection attempt may
-  /// still resolve afterwards on some platforms; the returned connection (if
-  /// any) is then orphaned. Call [disconnect] if you track its id.
+  /// when it does not complete in time. A native connect cannot be cancelled,
+  /// so an attempt that lands after the deadline is closed and released for
+  /// you rather than left holding an open socket.
   ///
   /// | Platform | Supported |
   /// |----------|-----------|
@@ -323,12 +324,32 @@ class FlutterClassicBluetooth {
     final future =
         _platform.connect(address: address, uuid: uuid, secure: secure);
     if (timeout == null) return future;
+
+    var timedOut = false;
+
+    // The native attempt keeps running after the deadline. If it succeeds, the
+    // connection it produces is unreachable from Dart, so its socket and its
+    // two event channels would stay open for the life of the app. Close
+    // whatever arrives late.
+    unawaited(future.then((connection) async {
+      if (!timedOut) return;
+      try {
+        await connection.close();
+      } catch (_) {
+        // The link may already be gone; there is nothing left to release.
+      }
+      connection.dispose();
+    }, onError: (_) {}));
+
     return future.timeout(
       timeout,
-      onTimeout: () => throw BtcTimeoutException(
-        message: 'Connection to $address timed out',
-        timeoutMs: timeout.inMilliseconds,
-      ),
+      onTimeout: () {
+        timedOut = true;
+        throw BtcTimeoutException(
+          message: 'Connection to $address timed out',
+          timeoutMs: timeout.inMilliseconds,
+        );
+      },
     );
   }
 

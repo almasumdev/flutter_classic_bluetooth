@@ -1,3 +1,18 @@
+## 0.1.9
+
+### Fixed
+* `connect(timeout: ...)` no longer leaves a connection behind when the native
+  attempt finishes after the deadline. A native connect cannot be cancelled, so
+  one that succeeded late kept an open socket and two event channels that
+  nothing in Dart could reach. Retrying in a loop left another one behind every
+  time, until the adapter stopped accepting new connections. A late attempt is
+  now closed and released for you.
+
+### Changed
+* Split the test suite into one file per area (plugin, method channel, models,
+  connection, frame splitting, reconnect) sharing a single mock platform.
+  Tests only; no change to the package.
+
 ## 0.1.8
 
 ### Changed
