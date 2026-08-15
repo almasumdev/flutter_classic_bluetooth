@@ -1,6 +1,7 @@
 name: Publish
 
-# Publishes to pub.dev when a version tag (v1.2.3) is pushed. Uses pub.dev's
+# Publishes to pub.dev and cuts a GitHub Release when a version tag (v1.2.3) is
+# pushed. Uses pub.dev's
 # OIDC automated-publishing flow, so no token/secret is stored in the repo;
 # configure the package's "Automated publishing" on pub.dev to trust this
 # workflow first. Tag a release that matches pubspec.yaml's version:
@@ -14,7 +15,7 @@ jobs:
     name: Publish to pub.dev
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write # create the GitHub Release for the tag
       id-token: write # pub.dev OIDC automated publishing
     steps:
       - uses: actions/checkout@v5
@@ -30,3 +31,24 @@ jobs:
 
       - run: flutter pub get
       - run: flutter pub publish --force
+
+      # Turn the tag into a GitHub Release so watchers get notified and each
+      # version gets its own page. Notes come from this version's CHANGELOG
+      # section, so the release and the changelog can never drift apart.
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v heading="## $VERSION" '
+            $0 == heading { collecting = 1; next }
+            collecting && /^## / { exit }
+            collecting { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "See CHANGELOG.md for the changes in this version." > release-notes.md
+          fi
+          gh release create "$GITHUB_REF_NAME" \
+            --title "v$VERSION" \
+            --notes-file release-notes.md \
+            --verify-tag
