@@ -1,0 +1,84 @@
+name: Bug report
+description: Something does not work the way the docs say it should
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Bluetooth Classic behaves differently on every platform and every
+        peripheral, so the details below usually decide how fast this can be
+        tracked down.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, and what you got instead.
+      placeholder: connect() returns but no bytes ever arrive on input
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      multiple: true
+      options:
+        - Android
+        - Windows
+        - macOS
+        - Linux
+        - iOS (MFi)
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: OS version
+      placeholder: Android 14, Windows 11 23H2, Ubuntu 24.04
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device you are talking to
+      description: Model of the peripheral, and its firmware if you know it.
+      placeholder: ESP32-WROOM-32, HC-05, Epson TM-T20III
+    validations:
+      required: true
+
+  - type: input
+    id: package-version
+    attributes:
+      label: Package version
+      placeholder: 0.1.9
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Code that reproduces it
+      description: The smallest snippet that shows the problem.
+      render: dart
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and stack trace
+      description: Anything from the console, plus `flutter doctor -v`.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I reproduced this on the latest published version.
+          required: true
+        - label: I checked the platform support matrix in the README for this feature.
+          required: true

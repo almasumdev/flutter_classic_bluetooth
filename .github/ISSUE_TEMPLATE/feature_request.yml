@@ -1,0 +1,49 @@
+name: Feature request
+description: Suggest something the plugin should be able to do
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do
+      description: Describe the goal rather than the API you have in mind.
+      placeholder: I need to know the negotiated RFCOMM channel so I can log it
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would it look like
+      description: A sketch of the API or behaviour you would expect.
+      render: dart
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platforms this matters for
+      multiple: true
+      options:
+        - Android
+        - Windows
+        - macOS
+        - Linux
+        - iOS (MFi)
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you are doing today
+      description: Any workaround you already have, even an ugly one.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: This is about Bluetooth Classic (RFCOMM/SPP), not Bluetooth Low Energy.
+          required: true
+        - label: I checked the Roadmap in the README, including the items listed as not currently possible.
+          required: true

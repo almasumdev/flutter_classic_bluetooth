@@ -550,7 +550,10 @@ system pairing agent (e.g. a running desktop Bluetooth applet).
   [issue tracker](https://github.com/almasumdev/flutter_classic_bluetooth/issues).
 - Questions and ideas are welcome via
   [GitHub Discussions](https://github.com/almasumdev/flutter_classic_bluetooth/discussions).
-- Pull requests are welcome; see the repository for contribution guidelines.
+- Pull requests are welcome; start with the
+  [contributing guide](https://github.com/almasumdev/flutter_classic_bluetooth/blob/main/CONTRIBUTING.md).
+- To report a security issue privately, see the
+  [security policy](https://github.com/almasumdev/flutter_classic_bluetooth/blob/main/SECURITY.md).
 
 ## About
 

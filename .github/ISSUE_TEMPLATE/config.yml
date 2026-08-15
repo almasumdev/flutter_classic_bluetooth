@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or help wiring up a device
+    url: https://github.com/almasumdev/flutter_classic_bluetooth/discussions
+    about: Ask here if you are not sure it is a bug. Questions stay searchable for the next person.
+  - name: Platform support matrix
+    url: https://github.com/almasumdev/flutter_classic_bluetooth#platform-support
+    about: Check what each platform can actually do before filing.
