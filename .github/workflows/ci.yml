@@ -54,24 +54,26 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # `build` is the flutter subcommand plus its flags. It is not always
+          # the platform name: Android builds an apk, not an "android".
           - platform: android
             os: ubuntu-latest
-            args: --debug
+            build: apk --debug
           - platform: linux
             os: ubuntu-latest
-            args: --debug
+            build: linux --debug
           # Release, because a debug INSTALL step trips over a googletest PDB
           # copy in the Flutter Windows runner template. The C++ is compiled
           # either way; release is the configuration that completes.
           - platform: windows
             os: windows-latest
-            args: --release
+            build: windows --release
           - platform: ios
             os: macos-latest
-            args: --debug --no-codesign
+            build: ios --debug --no-codesign
           - platform: macos
             os: macos-latest
-            args: --debug
+            build: macos --debug
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
@@ -96,7 +98,7 @@ jobs:
         working-directory: example
         run: |
           flutter pub get
-          flutter build ${{ matrix.platform }} ${{ matrix.args }}
+          flutter build ${{ matrix.build }}
 
   pana:
     name: Pana score gate
