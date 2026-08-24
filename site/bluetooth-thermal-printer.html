@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Print to a Bluetooth Thermal Printer from Flutter</title>
+<meta name="description" content="Send ESC/POS receipts to a Bluetooth Classic thermal printer from a Flutter app, including text, alignment, cutting and the flushing problem that truncates the last line.">
+<link rel="canonical" href="https://flutter-classic-bluetooth.web.app/bluetooth-thermal-printer">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Print to a Bluetooth Thermal Printer from Flutter">
+<meta property="og:description" content="Send ESC/POS receipts to a Bluetooth Classic thermal printer from a Flutter app, including text, alignment, cutting and the flushing problem that truncates the last line.">
+<meta property="og:url" content="https://flutter-classic-bluetooth.web.app/bluetooth-thermal-printer">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.88cd6437e8.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Thermal printers", "description": "Send ESC/POS receipts to a Bluetooth Classic thermal printer from a Flutter app, including text, alignment, cutting and the flushing problem that truncates the last line.", "url": "https://flutter-classic-bluetooth.web.app/bluetooth-thermal-printer", "author": {"@type": "Person", "name": "Nurullah Al Masum"}, "about": {"@type": "SoftwareSourceCode", "name": "flutter_classic_bluetooth", "programmingLanguage": "Dart", "codeRepository": "https://github.com/almasumdev/flutter_classic_bluetooth"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "How do I print to a Bluetooth thermal printer from Flutter?", "acceptedAnswer": {"@type": "Answer", "text": "Connect to the printer over RFCOMM, then write ESC/POS bytes to the connection output. Use an ESC/POS builder package to compose the receipt and send the result with writeBytes."}}, {"@type": "Question", "name": "Why does my Bluetooth printer cut off the last line?", "acceptedAnswer": {"@type": "Answer", "text": "The connection was closed before the write queue drained. Await allSent and use finish rather than close, which discards anything still queued."}}, {"@type": "Question", "name": "Why do accented characters print incorrectly on a thermal printer?", "acceptedAnswer": {"@type": "Answer", "text": "Thermal printers use code pages rather than UTF-8. Select the printer's code page with an ESC t command and pass a matching encoding such as latin1 to writeString."}}]}</script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="topbar">
+  <button class="menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="/"><img src="/logo.svg" alt="" width="24" height="24">flutter_classic_bluetooth</a>
+  <span class="ver">v0.1.10</span>
+  <div class="grow"></div>
+  <a class="ext" href="https://pub.dev/packages/flutter_classic_bluetooth"><span>pub.dev</span></a>
+  <a class="ext" href="https://github.com/almasumdev/flutter_classic_bluetooth" aria-label="Source on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
+</header>
+
+<div class="scrim" aria-hidden="true"></div>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar" aria-label="Documentation"><h2>Start here</h2><ul><li><a href="/">Introduction</a></li><li><a href="/bluetooth-permissions">Permissions and setup</a></li><li><a href="/scan-bluetooth-devices">Scan for devices</a></li><li><a href="/connect-bluetooth-device">Connect to a device</a></li></ul><h2>Moving data</h2><ul><li><a href="/send-receive-data">Send and receive</a></li><li><a href="/rfcomm-server">Run a server</a></li></ul><h2>Talking to hardware</h2><ul><li><a href="/esp32-bluetooth">ESP32</a></li><li><a href="/hc-05-arduino">HC-05 and Arduino</a></li><li><a href="/bluetooth-thermal-printer" aria-current="page">Thermal printers</a></li></ul><h2>Going further</h2><ul><li><a href="/pair-devices">Pair and unpair</a></li><li><a href="/desktop-bluetooth">Windows, macOS, Linux</a></li><li><a href="/troubleshooting">Troubleshooting</a></li></ul></nav>
+
+  <main class="content" id="content">
+    <article>
+      <h1>Thermal printers</h1>
+      <p class="lede">A receipt printer is an SPP device that happens to interpret ESC/POS bytes.</p>
+      <h2 id="install">Install<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>flutter pub add flutter_classic_bluetooth</code></pre></div>
+<div class="codeblock"><pre><code>import 'package:flutter_classic_bluetooth/flutter_classic_bluetooth.dart';</code></pre></div>
+<h2 id="finding-the-printer">Finding the printer<a class="anchor" href="#finding-the-printer" aria-label="Link to this section">#</a></h2>
+<p>Receipt printers are nearly always paired once and then used forever, so read the paired list rather than scanning.</p>
+<div class="codeblock"><pre><code>final paired = await bluetooth.getPairedDevices();
+final printer = paired.firstWhere(
+  (d) =&gt; (d.name ?? '').contains('Printer'),
+);
+
+final connection = await bluetooth.connect(address: printer.address);</code></pre></div>
+<p>Names vary wildly between vendors: <code>Printer001</code>, <code>BlueTooth Printer</code>, <code>MTP-2</code>, <code>RPP02N</code>. Let the user pick from the paired list rather than hard coding a match.</p>
+
+<h2 id="escpos-is-just-bytes">ESC/POS is just bytes<a class="anchor" href="#escpos-is-just-bytes" aria-label="Link to this section">#</a></h2>
+<p>This plugin moves bytes. It does not build receipts. Composing an ESC/POS document is a separate job, and there are packages that do it well.</p>
+<div class="codeblock"><pre><code>const esc = 0x1B;
+const gs = 0x1D;
+
+await connection.output.writeBytes([esc, 0x40]);           // initialise
+await connection.output.writeBytes([esc, 0x61, 0x01]);     // centre
+await connection.output.writeString('MY SHOP');
+await connection.output.writeBytes([0x0A]);                // line feed
+await connection.output.writeBytes([esc, 0x61, 0x00]);     // left
+await connection.output.writeString('Item        1.00');
+await connection.output.writeBytes([0x0A, 0x0A, 0x0A]);
+await connection.output.writeBytes([gs, 0x56, 0x00]);      // cut</code></pre></div>
+<p>Pair this with an ESC/POS builder package for real receipts, and pass its generated byte list to <code>writeBytes</code>. The <code>flutter_esc_pos_utils</code> family works well for that.</p>
+
+<h2 id="the-truncated-last-line">The truncated last line<a class="anchor" href="#the-truncated-last-line" aria-label="Link to this section">#</a></h2>
+<p>The single most common complaint. You send a receipt, close the connection, and the last few lines never print.</p>
+<div class="codeblock"><pre><code>// Wrong: closes before the queue has drained.
+connection.output.writeBytes(receipt);
+await connection.close();
+
+// Right: flush, then close.
+await connection.output.writeBytes(receipt);
+await connection.output.allSent;
+await connection.finish();</code></pre></div>
+<p><code>finish</code> flushes pending writes before closing; <code>close</code> does not. Many printers also buffer internally, so give the paper feed at the end of the receipt real line feeds rather than relying on the cut command to push it out.</p>
+
+<h2 id="character-encoding">Character encoding<a class="anchor" href="#character-encoding" aria-label="Link to this section">#</a></h2>
+<p>Thermal printers rarely speak UTF-8. Most use a code page, and non-ASCII characters come out as noise unless you match it.</p>
+<div class="codeblock"><pre><code>await connection.output.writeBytes([0x1B, 0x74, 0x00]);   // select code page
+await connection.output.writeString('Café', encoding: latin1);</code></pre></div>
+<p>Which code page maps to which number is vendor specific and in the printer's manual. If accented characters are wrong, that pairing is where to look, not the Dart side.</p>
+
+<h2 id="images-and-receipts-that-stall">Images and receipts that stall<a class="anchor" href="#images-and-receipts-that-stall" aria-label="Link to this section">#</a></h2>
+<p>A logo raster is large, and some printers cannot take it in one burst. If printing stalls partway through an image, send it in chunks and let the printer keep up.</p>
+<div class="codeblock"><pre><code>const chunk = 256;
+for (var i = 0; i &lt; raster.length; i += chunk) {
+  await connection.output.writeBytes(
+    raster.sublist(i, (i + chunk).clamp(0, raster.length)),
+  );
+  await Future&lt;void&gt;.delayed(const Duration(milliseconds: 20));
+}
+await connection.output.allSent;</code></pre></div>
+<h2 id="common-problems">Common problems<a class="anchor" href="#common-problems" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><div class="tablewrap"><table>
+<thead><tr><th>Symptom</th><th>Usually</th></tr></thead>
+<tbody>
+<tr><td>Last lines missing</td><td><code>close</code> instead of <code>finish</code>, or no <code>allSent</code></td></tr>
+<tr><td>Accented characters wrong</td><td>Code page not selected, or the wrong encoding on <code>writeString</code></td></tr>
+<tr><td>Prints nothing at all</td><td>Missing the <code>ESC @</code> initialise sequence</td></tr>
+<tr><td>Image stalls halfway</td><td>Raster sent faster than the printer can absorb it</td></tr>
+<tr><td>Connect fails while idle</td><td>Printer went to sleep. Power cycle and reconnect</td></tr>
+</tbody></table></div></div>
+<nav class="next" aria-label="Related guides"><a href="/send-receive-data">Send and receive</a><a href="/connect-bluetooth-device">Connect</a></nav>
+      <footer class="pagefoot">
+        flutter_classic_bluetooth is open source under the MIT licence.
+        <a href="https://pub.dev/packages/flutter_classic_bluetooth">pub.dev</a> &middot;
+        <a href="https://github.com/almasumdev/flutter_classic_bluetooth">Source</a> &middot;
+        <a href="https://pub.dev/documentation/flutter_classic_bluetooth/latest/">API reference</a>
+      </footer>
+    </article>
+  </main>
+
+  <aside class="toc"><nav aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ul><li><a href="#install">Install</a></li><li><a href="#finding-the-printer">Finding the printer</a></li><li><a href="#escpos-is-just-bytes">ESC/POS is just bytes</a></li><li><a href="#the-truncated-last-line">The truncated last line</a></li><li><a href="#character-encoding">Character encoding</a></li><li><a href="#images-and-receipts-that-stall">Images and receipts that stall</a></li><li><a href="#common-problems">Common problems</a></li></ul></nav></aside>
+</div>
+
+<script src="/docs.029eb910a1.js" defer></script>
+</body>
+</html>

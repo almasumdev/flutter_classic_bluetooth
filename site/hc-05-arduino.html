@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Connect Flutter to HC-05 and Arduino over Bluetooth</title>
+<meta name="description" content="Talk to an HC-05 or HC-06 Bluetooth module wired to an Arduino from a Flutter app, send AT commands, and handle the pairing and baud rate problems these modules are known for.">
+<link rel="canonical" href="https://flutter-classic-bluetooth.web.app/hc-05-arduino">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Connect Flutter to HC-05 and Arduino over Bluetooth">
+<meta property="og:description" content="Talk to an HC-05 or HC-06 Bluetooth module wired to an Arduino from a Flutter app, send AT commands, and handle the pairing and baud rate problems these modules are known for.">
+<meta property="og:url" content="https://flutter-classic-bluetooth.web.app/hc-05-arduino">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.88cd6437e8.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "HC-05 and Arduino", "description": "Talk to an HC-05 or HC-06 Bluetooth module wired to an Arduino from a Flutter app, send AT commands, and handle the pairing and baud rate problems these modules are known for.", "url": "https://flutter-classic-bluetooth.web.app/hc-05-arduino", "author": {"@type": "Person", "name": "Nurullah Al Masum"}, "about": {"@type": "SoftwareSourceCode", "name": "flutter_classic_bluetooth", "programmingLanguage": "Dart", "codeRepository": "https://github.com/almasumdev/flutter_classic_bluetooth"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "How do I connect Flutter to an HC-05 Bluetooth module?", "acceptedAnswer": {"@type": "Answer", "text": "Pair the module in system settings first, using PIN 1234 or 0000, then find it in getPairedDevices and call connect with its address. It presents a standard SPP port."}}, {"@type": "Question", "name": "Why is the data from my HC-05 garbled in Flutter?", "acceptedAnswer": {"@type": "Answer", "text": "Almost always a baud rate mismatch between the Arduino sketch and the module's UART setting. The link still connects, so the only symptom is nonsense bytes."}}, {"@type": "Question", "name": "Can I send AT commands to an HC-05 from Flutter?", "acceptedAnswer": {"@type": "Answer", "text": "Yes, once the module is in AT mode, which requires holding the KEY pin high at power up. Use sendAndReceive, which sends CRLF by default."}}]}</script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="topbar">
+  <button class="menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="/"><img src="/logo.svg" alt="" width="24" height="24">flutter_classic_bluetooth</a>
+  <span class="ver">v0.1.10</span>
+  <div class="grow"></div>
+  <a class="ext" href="https://pub.dev/packages/flutter_classic_bluetooth"><span>pub.dev</span></a>
+  <a class="ext" href="https://github.com/almasumdev/flutter_classic_bluetooth" aria-label="Source on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
+</header>
+
+<div class="scrim" aria-hidden="true"></div>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar" aria-label="Documentation"><h2>Start here</h2><ul><li><a href="/">Introduction</a></li><li><a href="/bluetooth-permissions">Permissions and setup</a></li><li><a href="/scan-bluetooth-devices">Scan for devices</a></li><li><a href="/connect-bluetooth-device">Connect to a device</a></li></ul><h2>Moving data</h2><ul><li><a href="/send-receive-data">Send and receive</a></li><li><a href="/rfcomm-server">Run a server</a></li></ul><h2>Talking to hardware</h2><ul><li><a href="/esp32-bluetooth">ESP32</a></li><li><a href="/hc-05-arduino" aria-current="page">HC-05 and Arduino</a></li><li><a href="/bluetooth-thermal-printer">Thermal printers</a></li></ul><h2>Going further</h2><ul><li><a href="/pair-devices">Pair and unpair</a></li><li><a href="/desktop-bluetooth">Windows, macOS, Linux</a></li><li><a href="/troubleshooting">Troubleshooting</a></li></ul></nav>
+
+  <main class="content" id="content">
+    <article>
+      <h1>HC-05 and Arduino</h1>
+      <p class="lede">The cheapest way to put an Arduino on Bluetooth, and the one with the most sharp edges.</p>
+      <h2 id="install">Install<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>flutter pub add flutter_classic_bluetooth</code></pre></div>
+<div class="codeblock"><pre><code>import 'package:flutter_classic_bluetooth/flutter_classic_bluetooth.dart';</code></pre></div>
+<h2 id="connecting">Connecting<a class="anchor" href="#connecting" aria-label="Link to this section">#</a></h2>
+<p>An HC-05 in its normal mode is a transparent serial bridge. Bytes you write arrive on the Arduino's RX pin and bytes the Arduino writes come back.</p>
+<div class="codeblock"><pre><code>final paired = await bluetooth.getPairedDevices();
+final hc05 = paired.firstWhere((d) =&gt; d.name == 'HC-05');
+
+final connection = await bluetooth.connect(
+  address: hc05.address,
+  timeout: const Duration(seconds: 8),
+);
+
+connection.input.lines().listen((line) =&gt; print('Arduino: $line'));
+await connection.output.writeLine('LED ON');</code></pre></div>
+<p>Pair it in system settings first. The default PIN is <code>1234</code> or <code>0000</code>. These modules do not always pair cleanly from inside an app, and doing it once in settings removes a whole class of confusing failures.</p>
+
+<h2 id="the-sketch">The sketch<a class="anchor" href="#the-sketch" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>#include &lt;SoftwareSerial.h&gt;
+
+SoftwareSerial bt(10, 11);   // RX, TX
+
+void setup() {
+  bt.begin(9600);
+}
+
+void loop() {
+  if (bt.available()) {
+    String cmd = bt.readStringUntil(10);
+    if (cmd.startsWith("LED ON")) digitalWrite(13, HIGH);
+    bt.println("ok");
+  }
+}</code></pre></div>
+<p>Wire the module's TX to the Arduino's RX and its RX to the Arduino's TX. The HC-05 RX pin is <strong>3.3V</strong>, so it needs a divider from a 5V board. Skipping that is the most common reason a module works for a while and then stops.</p>
+
+<h2 id="baud-rate">Baud rate<a class="anchor" href="#baud-rate" aria-label="Link to this section">#</a></h2>
+<p>The module's Bluetooth side and its serial side are configured separately. <code>bt.begin(9600)</code> has to match the module's UART baud, which is 9600 by default but is often changed to 38400 or 115200 and then forgotten.</p>
+<p>A mismatch does not fail cleanly. You get a connection, you can write, and what comes back is garbage bytes. If <code>lines</code> is emitting nonsense, suspect the baud rate before anything in Dart.</p>
+
+<h2 id="at-command-mode">AT command mode<a class="anchor" href="#at-command-mode" aria-label="Link to this section">#</a></h2>
+<p>Held in AT mode, an HC-05 answers configuration commands over the same link.</p>
+<div class="codeblock"><pre><code>final name = await connection.sendAndReceive('AT+NAME?');
+final version = await connection.sendAndReceive('AT+VERSION?');
+
+final ok = await connection.sendAndReceive(
+  'AT+UART=9600,0,0',
+  where: (line) =&gt; line == 'OK',
+);</code></pre></div>
+<p>HC-05 firmware expects <code>\r\n</code>, which is what <code>sendAndReceive</code> sends by default. Some clones want a bare <code>\n</code>:</p>
+<div class="codeblock"><pre><code>await connection.sendAndReceive('AT', newline: '\n');</code></pre></div>
+<p>Entering AT mode is a hardware step: hold the module's KEY or EN pin high while powering it up. There is no way to trigger it from Dart.</p>
+
+<h2 id="hc-06">HC-06<a class="anchor" href="#hc-06" aria-label="Link to this section">#</a></h2>
+<p>An HC-06 is slave only. It cannot initiate a connection, which is fine here since your app is always the one connecting. Its AT dialect is different: no <code>\r\n</code> terminator, and no <code>?</code> query form. Everything else on this page applies.</p>
+
+<h2 id="common-problems">Common problems<a class="anchor" href="#common-problems" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><div class="tablewrap"><table>
+<thead><tr><th>Symptom</th><th>Usually</th></tr></thead>
+<tbody>
+<tr><td>Received text is garbage</td><td>Baud mismatch between the sketch and the module</td></tr>
+<tr><td>Connects, then drops after a second</td><td>Powered from a pin that cannot supply the peak current</td></tr>
+<tr><td>Module stops responding after weeks</td><td>5V on the 3.3V RX pin. Use a divider</td></tr>
+<tr><td>Arduino receives nothing</td><td>TX and RX not crossed, or writeString used with no delimiter</td></tr>
+<tr><td>AT commands return nothing</td><td>Not in AT mode. The KEY pin must be high at power up</td></tr>
+<tr><td>Pairing fails from the app</td><td>Pair once in system settings with PIN 1234 or 0000</td></tr>
+</tbody></table></div></div>
+<nav class="next" aria-label="Related guides"><a href="/esp32-bluetooth">ESP32</a><a href="/troubleshooting">Troubleshooting</a></nav>
+      <footer class="pagefoot">
+        flutter_classic_bluetooth is open source under the MIT licence.
+        <a href="https://pub.dev/packages/flutter_classic_bluetooth">pub.dev</a> &middot;
+        <a href="https://github.com/almasumdev/flutter_classic_bluetooth">Source</a> &middot;
+        <a href="https://pub.dev/documentation/flutter_classic_bluetooth/latest/">API reference</a>
+      </footer>
+    </article>
+  </main>
+
+  <aside class="toc"><nav aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ul><li><a href="#install">Install</a></li><li><a href="#connecting">Connecting</a></li><li><a href="#the-sketch">The sketch</a></li><li><a href="#baud-rate">Baud rate</a></li><li><a href="#at-command-mode">AT command mode</a></li><li><a href="#hc-06">HC-06</a></li><li><a href="#common-problems">Common problems</a></li></ul></nav></aside>
+</div>
+
+<script src="/docs.029eb910a1.js" defer></script>
+</body>
+</html>

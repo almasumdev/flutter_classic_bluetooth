@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <radialGradient id="bg" cx="47%" cy="42%" r="80%">
+      <stop offset="0%" stop-color="#3A414B"/>
+      <stop offset="55%" stop-color="#20252D"/>
+      <stop offset="100%" stop-color="#0A0D11"/>
+    </radialGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E9EFF7"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2E86F0"/>
+      <stop offset="100%" stop-color="#1157D8"/>
+    </linearGradient>
+    <filter id="soft" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="60"/></filter>
+    <filter id="soft2" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="24"/></filter>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <!-- glows -->
+  <ellipse cx="512" cy="472" rx="350" ry="360" fill="#FFFFFF" opacity="0.34" filter="url(#soft)"/>
+  <ellipse cx="512" cy="560" rx="300" ry="255" fill="#3E9BFF" opacity="0.20" filter="url(#soft)"/>
+
+  <!-- white rounded card with depth + drop shadow -->
+  <rect x="288" y="280" width="480" height="480" rx="64" fill="#08182F" opacity="0.5" filter="url(#soft2)"/>
+  <rect x="280" y="270" width="480" height="480" rx="63" fill="#123A82"/>
+  <rect x="272" y="256" width="480" height="480" rx="62" fill="url(#paper)"/>
+
+  <!-- bluetooth glyph (filled), centered on card center (512, 496) -->
+  <path transform="translate(330.3,304) scale(16)"
+        d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 14.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"
+        fill="url(#blue)"/>
+
+  <rect x="272" y="256" width="480" height="480" rx="62" fill="none" stroke="#9DBFEC" stroke-width="4"/>
+</svg>

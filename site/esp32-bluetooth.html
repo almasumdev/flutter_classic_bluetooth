@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Connect Flutter to an ESP32 over Bluetooth Classic</title>
+<meta name="description" content="Pair a Flutter app with an ESP32 using Bluetooth Classic SPP, send commands from Dart to the BluetoothSerial sketch, and read the replies back as lines.">
+<link rel="canonical" href="https://flutter-classic-bluetooth.web.app/esp32-bluetooth">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Connect Flutter to an ESP32 over Bluetooth Classic">
+<meta property="og:description" content="Pair a Flutter app with an ESP32 using Bluetooth Classic SPP, send commands from Dart to the BluetoothSerial sketch, and read the replies back as lines.">
+<meta property="og:url" content="https://flutter-classic-bluetooth.web.app/esp32-bluetooth">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.88cd6437e8.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "ESP32", "description": "Pair a Flutter app with an ESP32 using Bluetooth Classic SPP, send commands from Dart to the BluetoothSerial sketch, and read the replies back as lines.", "url": "https://flutter-classic-bluetooth.web.app/esp32-bluetooth", "author": {"@type": "Person", "name": "Nurullah Al Masum"}, "about": {"@type": "SoftwareSourceCode", "name": "flutter_classic_bluetooth", "programmingLanguage": "Dart", "codeRepository": "https://github.com/almasumdev/flutter_classic_bluetooth"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "How do I connect a Flutter app to an ESP32 over Bluetooth?", "acceptedAnswer": {"@type": "Answer", "text": "Run BluetoothSerial on the board, find it by name with scan or getPairedDevices, then call connect with its address. The ESP32 exposes a standard SPP port, so the default UUID works."}}, {"@type": "Question", "name": "Why can my Flutter app not find my ESP32 over Bluetooth Classic?", "acceptedAnswer": {"@type": "Answer", "text": "The ESP32-C3, C6 and S2 have no Bluetooth Classic radio, only BLE, so they cannot run BluetoothSerial. Use a classic ESP32 or an ESP32-S3."}}, {"@type": "Question", "name": "Why does my ESP32 receive nothing from Flutter?", "acceptedAnswer": {"@type": "Answer", "text": "readStringUntil waits for a delimiter. Use writeLine rather than writeString so the newline the sketch expects is actually sent."}}]}</script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="topbar">
+  <button class="menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="/"><img src="/logo.svg" alt="" width="24" height="24">flutter_classic_bluetooth</a>
+  <span class="ver">v0.1.10</span>
+  <div class="grow"></div>
+  <a class="ext" href="https://pub.dev/packages/flutter_classic_bluetooth"><span>pub.dev</span></a>
+  <a class="ext" href="https://github.com/almasumdev/flutter_classic_bluetooth" aria-label="Source on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
+</header>
+
+<div class="scrim" aria-hidden="true"></div>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar" aria-label="Documentation"><h2>Start here</h2><ul><li><a href="/">Introduction</a></li><li><a href="/bluetooth-permissions">Permissions and setup</a></li><li><a href="/scan-bluetooth-devices">Scan for devices</a></li><li><a href="/connect-bluetooth-device">Connect to a device</a></li></ul><h2>Moving data</h2><ul><li><a href="/send-receive-data">Send and receive</a></li><li><a href="/rfcomm-server">Run a server</a></li></ul><h2>Talking to hardware</h2><ul><li><a href="/esp32-bluetooth" aria-current="page">ESP32</a></li><li><a href="/hc-05-arduino">HC-05 and Arduino</a></li><li><a href="/bluetooth-thermal-printer">Thermal printers</a></li></ul><h2>Going further</h2><ul><li><a href="/pair-devices">Pair and unpair</a></li><li><a href="/desktop-bluetooth">Windows, macOS, Linux</a></li><li><a href="/troubleshooting">Troubleshooting</a></li></ul></nav>
+
+  <main class="content" id="content">
+    <article>
+      <h1>ESP32</h1>
+      <p class="lede">An ESP32 running BluetoothSerial is a plain SPP device, so nothing special is needed on the Flutter side.</p>
+      <h2 id="install">Install<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>flutter pub add flutter_classic_bluetooth</code></pre></div>
+<div class="codeblock"><pre><code>import 'package:flutter_classic_bluetooth/flutter_classic_bluetooth.dart';</code></pre></div>
+<h2 id="the-sketch">The sketch<a class="anchor" href="#the-sketch" aria-label="Link to this section">#</a></h2>
+<p>On the board, <code>BluetoothSerial</code> from the Arduino ESP32 core exposes a standard serial port. The name you pass to <code>begin</code> is what shows up in a scan.</p>
+<div class="codeblock"><pre><code>#include "BluetoothSerial.h"
+
+BluetoothSerial SerialBT;
+
+void setup() {
+  SerialBT.begin("ESP32-Device");
+}
+
+void loop() {
+  if (SerialBT.available()) {
+    String line = SerialBT.readStringUntil('\n');
+    SerialBT.println("echo: " + line);
+  }
+}</code></pre></div>
+<p>This needs a classic ESP32 or ESP32-S3. The <strong>ESP32-C3, C6 and S2 have no Bluetooth Classic radio</strong>, only BLE, so <code>BluetoothSerial</code> will not compile for them and no amount of Flutter code will reach them.</p>
+
+<h2 id="finding-it">Finding it<a class="anchor" href="#finding-it" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>final bluetooth = FlutterClassicBluetooth();
+
+final devices = await bluetooth.scan(timeout: const Duration(seconds: 10));
+final esp = devices.firstWhere((d) =&gt; d.name == 'ESP32-Device');</code></pre></div>
+<p>After the first pairing, skip the scan entirely and read it from <code>getPairedDevices</code>, which is instant.</p>
+
+<h2 id="connecting-and-talking">Connecting and talking<a class="anchor" href="#connecting-and-talking" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>final connection = await bluetooth.connect(
+  address: esp.address,
+  timeout: const Duration(seconds: 8),
+);
+
+connection.input.lines().listen((line) {
+  print('ESP32: $line');
+});
+
+await connection.output.writeLine('hello');</code></pre></div>
+<p><code>writeLine</code> appends the newline the sketch's <code>readStringUntil</code> is waiting for. Without a delimiter the board sits there holding a partial line, which looks exactly like a connection that is not working.</p>
+
+<h2 id="command-and-reply">Command and reply<a class="anchor" href="#command-and-reply" aria-label="Link to this section">#</a></h2>
+<p>When the board answers each command, <code>sendAndReceive</code> is less code than wiring up a listener and a completer.</p>
+<div class="codeblock"><pre><code>final reply = await connection.sendAndReceive('status');
+print(reply);   // echo: status</code></pre></div>
+<h2 id="streaming-sensor-data">Streaming sensor data<a class="anchor" href="#streaming-sensor-data" aria-label="Link to this section">#</a></h2>
+<p>A board that pushes readings continuously is the other common shape. Parse each line as it lands.</p>
+<div class="codeblock"><pre><code>connection.input.lines().listen((line) {
+  final parts = line.split(',');
+  if (parts.length != 2) return;          // ignore boot noise
+  final temp = double.tryParse(parts[0]);
+  final humidity = double.tryParse(parts[1]);
+  if (temp != null &amp;&amp; humidity != null) {
+    setState(() =&gt; reading = (temp, humidity));
+  }
+});</code></pre></div>
+<p>Guard the parse. An ESP32 prints boot messages over the same port before your sketch takes over, and those will reach you as lines.</p>
+
+<h2 id="surviving-a-reset">Surviving a reset<a class="anchor" href="#surviving-a-reset" aria-label="Link to this section">#</a></h2>
+<p>Boards get power cycled and reflashed constantly during development. A reconnecting link saves restarting the app every time.</p>
+<div class="codeblock"><pre><code>final link = bluetooth.connectWithReconnect(
+  address: esp.address,
+  policy: const BtcReconnectPolicy(
+    initialBackoff: Duration(seconds: 1),
+    maxBackoff: Duration(seconds: 15),
+  ),
+);
+
+link.input.lines().listen((line) =&gt; print('ESP32: $line'));
+await link.sendLine('hello');</code></pre></div>
+<h2 id="common-problems">Common problems<a class="anchor" href="#common-problems" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><div class="tablewrap"><table>
+<thead><tr><th>Symptom</th><th>Usually</th></tr></thead>
+<tbody>
+<tr><td>Board never appears in a scan</td><td>An ESP32-C3, C6 or S2, which has no Bluetooth Classic radio</td></tr>
+<tr><td>Connects, then drops immediately</td><td>Brownout. USB power is often not enough while the radio transmits</td></tr>
+<tr><td>Nothing arrives in Dart</td><td>The sketch is not sending a delimiter, so <code>lines</code> never completes one</td></tr>
+<tr><td>First lines are garbage</td><td>Boot log on the same port. Skip lines that do not parse</td></tr>
+<tr><td>Connect fails after reflashing</td><td>The old bond is stale. Unpair and pair again</td></tr>
+</tbody></table></div></div>
+<nav class="next" aria-label="Related guides"><a href="/send-receive-data">Send and receive</a><a href="/hc-05-arduino">HC-05 and Arduino</a></nav>
+      <footer class="pagefoot">
+        flutter_classic_bluetooth is open source under the MIT licence.
+        <a href="https://pub.dev/packages/flutter_classic_bluetooth">pub.dev</a> &middot;
+        <a href="https://github.com/almasumdev/flutter_classic_bluetooth">Source</a> &middot;
+        <a href="https://pub.dev/documentation/flutter_classic_bluetooth/latest/">API reference</a>
+      </footer>
+    </article>
+  </main>
+
+  <aside class="toc"><nav aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ul><li><a href="#install">Install</a></li><li><a href="#the-sketch">The sketch</a></li><li><a href="#finding-it">Finding it</a></li><li><a href="#connecting-and-talking">Connecting and talking</a></li><li><a href="#command-and-reply">Command and reply</a></li><li><a href="#streaming-sensor-data">Streaming sensor data</a></li><li><a href="#surviving-a-reset">Surviving a reset</a></li><li><a href="#common-problems">Common problems</a></li></ul></nav></aside>
+</div>
+
+<script src="/docs.029eb910a1.js" defer></script>
+</body>
+</html>

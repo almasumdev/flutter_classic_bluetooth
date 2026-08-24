@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How to Scan for Bluetooth Devices in Flutter</title>
+<meta name="description" content="Discover nearby Bluetooth Classic devices from Flutter, list already paired devices, and build a live scan list that fills in as devices are found.">
+<link rel="canonical" href="https://flutter-classic-bluetooth.web.app/scan-bluetooth-devices">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Scan for Bluetooth Devices in Flutter">
+<meta property="og:description" content="Discover nearby Bluetooth Classic devices from Flutter, list already paired devices, and build a live scan list that fills in as devices are found.">
+<meta property="og:url" content="https://flutter-classic-bluetooth.web.app/scan-bluetooth-devices">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.88cd6437e8.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Scan for devices", "description": "Discover nearby Bluetooth Classic devices from Flutter, list already paired devices, and build a live scan list that fills in as devices are found.", "url": "https://flutter-classic-bluetooth.web.app/scan-bluetooth-devices", "author": {"@type": "Person", "name": "Nurullah Al Masum"}, "about": {"@type": "SoftwareSourceCode", "name": "flutter_classic_bluetooth", "programmingLanguage": "Dart", "codeRepository": "https://github.com/almasumdev/flutter_classic_bluetooth"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "How do I scan for Bluetooth devices in Flutter?", "acceptedAnswer": {"@type": "Answer", "text": "Call scan for a finished list after a fixed window, or listen to discoveryResults and call startDiscovery for a live list that fills in as devices are found."}}, {"@type": "Question", "name": "Why does the same Bluetooth device appear several times while scanning?", "acceptedAnswer": {"@type": "Answer", "text": "Each inquiry response is reported separately, and later reports often add a name or a fresher RSSI. Deduplicate by the address field."}}, {"@type": "Question", "name": "Why is the Bluetooth device name null?", "acceptedAnswer": {"@type": "Answer", "text": "The first discovery report often carries only an address. Use displayName, which falls back to the address, and update the entry as later reports arrive."}}]}</script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="topbar">
+  <button class="menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="/"><img src="/logo.svg" alt="" width="24" height="24">flutter_classic_bluetooth</a>
+  <span class="ver">v0.1.10</span>
+  <div class="grow"></div>
+  <a class="ext" href="https://pub.dev/packages/flutter_classic_bluetooth"><span>pub.dev</span></a>
+  <a class="ext" href="https://github.com/almasumdev/flutter_classic_bluetooth" aria-label="Source on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
+</header>
+
+<div class="scrim" aria-hidden="true"></div>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar" aria-label="Documentation"><h2>Start here</h2><ul><li><a href="/">Introduction</a></li><li><a href="/bluetooth-permissions">Permissions and setup</a></li><li><a href="/scan-bluetooth-devices" aria-current="page">Scan for devices</a></li><li><a href="/connect-bluetooth-device">Connect to a device</a></li></ul><h2>Moving data</h2><ul><li><a href="/send-receive-data">Send and receive</a></li><li><a href="/rfcomm-server">Run a server</a></li></ul><h2>Talking to hardware</h2><ul><li><a href="/esp32-bluetooth">ESP32</a></li><li><a href="/hc-05-arduino">HC-05 and Arduino</a></li><li><a href="/bluetooth-thermal-printer">Thermal printers</a></li></ul><h2>Going further</h2><ul><li><a href="/pair-devices">Pair and unpair</a></li><li><a href="/desktop-bluetooth">Windows, macOS, Linux</a></li><li><a href="/troubleshooting">Troubleshooting</a></li></ul></nav>
+
+  <main class="content" id="content">
+    <article>
+      <h1>Scan for devices</h1>
+      <p class="lede">Two ways to find a device: collect a scan, or watch results arrive one at a time.</p>
+      <h2 id="install">Install<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>flutter pub add flutter_classic_bluetooth</code></pre></div>
+<div class="codeblock"><pre><code>import 'package:flutter_classic_bluetooth/flutter_classic_bluetooth.dart';</code></pre></div>
+<h2 id="the-simple-way">The simple way<a class="anchor" href="#the-simple-way" aria-label="Link to this section">#</a></h2>
+<p><code>scan</code> runs discovery for a fixed window and hands back a finished list, deduplicated by address and sorted strongest signal first.</p>
+<div class="codeblock"><pre><code>final bluetooth = FlutterClassicBluetooth();
+
+final devices = await bluetooth.scan(timeout: const Duration(seconds: 10));
+
+for (final device in devices) {
+  print('${device.displayName}  ${device.address}  ${device.rssi} dBm');
+}</code></pre></div>
+<p>Discovery is stopped for you when the window closes, including if something throws partway through.</p>
+
+<h2 id="a-live-list">A live list<a class="anchor" href="#a-live-list" aria-label="Link to this section">#</a></h2>
+<p>Ten seconds of a blank screen is a poor experience. Listen to <code>discoveryResults</code> and show each device the moment it appears.</p>
+<div class="codeblock"><pre><code>final found = &lt;String, BtcDevice&gt;{};
+
+final sub = bluetooth.discoveryResults.listen((device) {
+  setState(() =&gt; found[device.address] = device);
+});
+
+await bluetooth.startDiscovery();
+// ... later
+await bluetooth.stopDiscovery();
+await sub.cancel();</code></pre></div>
+<p>Key the map by <code>address</code>. The same device is reported several times during a scan, once per inquiry response, and each report may carry a different RSSI or fill in a name the first one lacked.</p>
+
+<h2 id="knowing-when-it-stops">Knowing when it stops<a class="anchor" href="#knowing-when-it-stops" aria-label="Link to this section">#</a></h2>
+<p>Discovery ends on its own after the platform's inquiry window, whether or not you call <code>stopDiscovery</code>. <code>discoveryState</code> tells you when that happens so a spinner can stop spinning.</p>
+<div class="codeblock"><pre><code>bluetooth.discoveryState.listen((scanning) {
+  setState(() =&gt; isScanning = scanning);
+});</code></pre></div>
+<h2 id="devices-you-already-know">Devices you already know<a class="anchor" href="#devices-you-already-know" aria-label="Link to this section">#</a></h2>
+<p>Most of the time the device is already paired, and a scan is wasted effort. Paired devices are available instantly, with no permission prompt on most platforms and no radio activity.</p>
+<div class="codeblock"><pre><code>final paired = await bluetooth.getPairedDevices();
+
+final printer = paired.firstWhere(
+  (d) =&gt; d.name?.contains('Printer') ?? false,
+);</code></pre></div>
+<p>A good device picker shows paired devices first and offers a scan for anything new.</p>
+
+<h2 id="what-a-result-carries">What a result carries<a class="anchor" href="#what-a-result-carries" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><div class="tablewrap"><table>
+<thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td><code>address</code></td><td>MAC address, the stable identifier</td></tr>
+<tr><td><code>name</code></td><td>Advertised name, often null on the first report</td></tr>
+<tr><td><code>alias</code></td><td>User-assigned name, where the platform has one</td></tr>
+<tr><td><code>displayName</code></td><td><code>alias</code>, else <code>name</code>, else the address</td></tr>
+<tr><td><code>rssi</code></td><td>Signal strength in dBm, closer to zero is stronger</td></tr>
+<tr><td><code>type</code></td><td>Classic, LE, or dual mode</td></tr>
+<tr><td><code>bondState</code></td><td>Whether it is already paired</td></tr>
+<tr><td><code>uuids</code></td><td>Advertised service UUIDs, when the platform reports them</td></tr>
+</tbody></table></div></div>
+<p>Use <code>displayName</code> in your UI. A device that has not reported a name yet would otherwise render as an empty row.</p>
+
+<h2 id="filtering-to-serial-devices">Filtering to serial devices<a class="anchor" href="#filtering-to-serial-devices" aria-label="Link to this section">#</a></h2>
+<p>A scan picks up headphones, keyboards and watches along with the board you care about. Where <code>uuids</code> is populated you can narrow the list to devices offering a serial port.</p>
+<div class="codeblock"><pre><code>final serial = devices.where(
+  (d) =&gt; d.uuids.any((u) =&gt; u.toUpperCase() == BtcUuid.spp),
+);</code></pre></div>
+<p>Do not rely on this alone. Several platforms report an empty <code>uuids</code> list during discovery and only fill it in after pairing, so treat a match as a hint and keep the full list reachable.</p>
+
+<h2 id="not-available-on-ios">Not available on iOS<a class="anchor" href="#not-available-on-ios" aria-label="Link to this section">#</a></h2>
+<p>iOS has no discovery API for Bluetooth Classic. <code>startDiscovery</code> and <code>scan</code> throw <code>BtcUnsupportedException</code> there, and <code>getPairedDevices</code> returns the MFi accessories your app declared. Check first:</p>
+<div class="codeblock"><pre><code>final caps = await bluetooth.getPlatformCapabilities();
+if (!caps.canDiscoverDevices) {
+  // Offer the paired list instead of a scan button.
+}</code></pre></div><nav class="next" aria-label="Related guides"><a href="/connect-bluetooth-device">Connect to a device</a><a href="/pair-devices">Pair and unpair</a></nav>
+      <footer class="pagefoot">
+        flutter_classic_bluetooth is open source under the MIT licence.
+        <a href="https://pub.dev/packages/flutter_classic_bluetooth">pub.dev</a> &middot;
+        <a href="https://github.com/almasumdev/flutter_classic_bluetooth">Source</a> &middot;
+        <a href="https://pub.dev/documentation/flutter_classic_bluetooth/latest/">API reference</a>
+      </footer>
+    </article>
+  </main>
+
+  <aside class="toc"><nav aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ul><li><a href="#install">Install</a></li><li><a href="#the-simple-way">The simple way</a></li><li><a href="#a-live-list">A live list</a></li><li><a href="#knowing-when-it-stops">Knowing when it stops</a></li><li><a href="#devices-you-already-know">Devices you already know</a></li><li><a href="#what-a-result-carries">What a result carries</a></li><li><a href="#filtering-to-serial-devices">Filtering to serial devices</a></li><li><a href="#not-available-on-ios">Not available on iOS</a></li></ul></nav></aside>
+</div>
+
+<script src="/docs.029eb910a1.js" defer></script>
+</body>
+</html>

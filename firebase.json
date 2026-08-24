@@ -1,0 +1,90 @@
+{
+  "hosting": [
+    {
+      "site": "flutter-classic-bluetooth",
+      "public": "site",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "cleanUrls": false,
+      "trailingSlash": false,
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache"
+            }
+          ]
+        },
+        {
+          "source": "/logo.svg",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=86400"
+            }
+          ]
+        },
+        {
+          "source": "**/*.@(css|js)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=31536000, immutable"
+            }
+          ]
+        }
+      ],
+      "rewrites": [
+        {
+          "source": "/bluetooth-permissions",
+          "destination": "/bluetooth-permissions.html"
+        },
+        {
+          "source": "/scan-bluetooth-devices",
+          "destination": "/scan-bluetooth-devices.html"
+        },
+        {
+          "source": "/connect-bluetooth-device",
+          "destination": "/connect-bluetooth-device.html"
+        },
+        {
+          "source": "/send-receive-data",
+          "destination": "/send-receive-data.html"
+        },
+        {
+          "source": "/rfcomm-server",
+          "destination": "/rfcomm-server.html"
+        },
+        {
+          "source": "/esp32-bluetooth",
+          "destination": "/esp32-bluetooth.html"
+        },
+        {
+          "source": "/hc-05-arduino",
+          "destination": "/hc-05-arduino.html"
+        },
+        {
+          "source": "/bluetooth-thermal-printer",
+          "destination": "/bluetooth-thermal-printer.html"
+        },
+        {
+          "source": "/pair-devices",
+          "destination": "/pair-devices.html"
+        },
+        {
+          "source": "/desktop-bluetooth",
+          "destination": "/desktop-bluetooth.html"
+        },
+        {
+          "source": "/troubleshooting",
+          "destination": "/troubleshooting.html"
+        }
+      ]
+    }
+  ]
+}

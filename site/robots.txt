@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://flutter-classic-bluetooth.web.app/sitemap.xml

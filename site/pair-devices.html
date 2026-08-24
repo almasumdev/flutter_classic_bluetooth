@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How to Pair and Unpair Bluetooth Devices in Flutter</title>
+<meta name="description" content="Bond and unbond Bluetooth Classic devices from a Flutter app, watch bond state as pairing progresses, and understand what each platform actually lets you do.">
+<link rel="canonical" href="https://flutter-classic-bluetooth.web.app/pair-devices">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Pair and Unpair Bluetooth Devices in Flutter">
+<meta property="og:description" content="Bond and unbond Bluetooth Classic devices from a Flutter app, watch bond state as pairing progresses, and understand what each platform actually lets you do.">
+<meta property="og:url" content="https://flutter-classic-bluetooth.web.app/pair-devices">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.88cd6437e8.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Pair and unpair", "description": "Bond and unbond Bluetooth Classic devices from a Flutter app, watch bond state as pairing progresses, and understand what each platform actually lets you do.", "url": "https://flutter-classic-bluetooth.web.app/pair-devices", "author": {"@type": "Person", "name": "Nurullah Al Masum"}, "about": {"@type": "SoftwareSourceCode", "name": "flutter_classic_bluetooth", "programmingLanguage": "Dart", "codeRepository": "https://github.com/almasumdev/flutter_classic_bluetooth"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "How do I pair a Bluetooth device programmatically in Flutter?", "acceptedAnswer": {"@type": "Answer", "text": "Call bondDevice with the address on Android, Windows or macOS, then watch bondState to see whether it reached bonded. Linux and iOS do not support programmatic pairing."}}, {"@type": "Question", "name": "Why can I not unpair a Bluetooth device on Windows or macOS?", "acceptedAnswer": {"@type": "Answer", "text": "Neither exposes a public API to remove a pairing. The call throws BtcUnsupportedException and the device has to be removed in system settings."}}, {"@type": "Question", "name": "Do I have to pair before connecting over Bluetooth Classic?", "acceptedAnswer": {"@type": "Answer", "text": "Usually not explicitly. A secure connection needs a bond, and the platform generally creates one during connect, showing the same dialog an explicit pair would."}}]}</script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="topbar">
+  <button class="menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="/"><img src="/logo.svg" alt="" width="24" height="24">flutter_classic_bluetooth</a>
+  <span class="ver">v0.1.10</span>
+  <div class="grow"></div>
+  <a class="ext" href="https://pub.dev/packages/flutter_classic_bluetooth"><span>pub.dev</span></a>
+  <a class="ext" href="https://github.com/almasumdev/flutter_classic_bluetooth" aria-label="Source on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
+</header>
+
+<div class="scrim" aria-hidden="true"></div>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar" aria-label="Documentation"><h2>Start here</h2><ul><li><a href="/">Introduction</a></li><li><a href="/bluetooth-permissions">Permissions and setup</a></li><li><a href="/scan-bluetooth-devices">Scan for devices</a></li><li><a href="/connect-bluetooth-device">Connect to a device</a></li></ul><h2>Moving data</h2><ul><li><a href="/send-receive-data">Send and receive</a></li><li><a href="/rfcomm-server">Run a server</a></li></ul><h2>Talking to hardware</h2><ul><li><a href="/esp32-bluetooth">ESP32</a></li><li><a href="/hc-05-arduino">HC-05 and Arduino</a></li><li><a href="/bluetooth-thermal-printer">Thermal printers</a></li></ul><h2>Going further</h2><ul><li><a href="/pair-devices" aria-current="page">Pair and unpair</a></li><li><a href="/desktop-bluetooth">Windows, macOS, Linux</a></li><li><a href="/troubleshooting">Troubleshooting</a></li></ul></nav>
+
+  <main class="content" id="content">
+    <article>
+      <h1>Pair and unpair</h1>
+      <p class="lede">Pairing is the one area where the platforms differ most, so check before you offer the button.</p>
+      <h2 id="install">Install<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>flutter pub add flutter_classic_bluetooth</code></pre></div>
+<div class="codeblock"><pre><code>import 'package:flutter_classic_bluetooth/flutter_classic_bluetooth.dart';</code></pre></div>
+<h2 id="pairing">Pairing<a class="anchor" href="#pairing" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>final ok = await bluetooth.bondDevice('AA:BB:CC:DD:EE:FF');</code></pre></div>
+<p><code>true</code> means the request was accepted, not that pairing finished. The exchange is asynchronous and usually involves the user confirming a code. Watch the bond state to know how it ended.</p>
+<div class="codeblock"><pre><code>final sub = bluetooth.bondState(device.address).listen((state) {
+  switch (state) {
+    case BtcBondState.bonding:
+      showProgress();
+    case BtcBondState.bonded:
+      connectNow();
+    case BtcBondState.none:
+      showFailed();
+  }
+});</code></pre></div>
+<p>A user who dismisses the system dialog produces <code>none</code>, not an error. Treat it as a cancellation rather than a failure worth an alert.</p>
+
+<h2 id="unpairing">Unpairing<a class="anchor" href="#unpairing" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>await bluetooth.unbondDevice(device.address);</code></pre></div>
+<p>Android and Linux do this properly. Windows and macOS do not expose an API for it, so the call throws <code>BtcUnsupportedException</code> and the user has to remove the device in system settings. Say that in your UI rather than showing a button that fails.</p>
+
+<h2 id="check-first">Check first<a class="anchor" href="#check-first" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>final caps = await bluetooth.getPlatformCapabilities();
+
+if (caps.canBondDevices) {
+  // show a Pair button
+}
+if (caps.canUnbondDevices) {
+  // show a Forget button
+}</code></pre></div>
+<h2 id="what-each-platform-allows">What each platform allows<a class="anchor" href="#what-each-platform-allows" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><div class="tablewrap"><table>
+<thead><tr><th>Platform</th><th>Pair</th><th>Unpair</th><th>Note</th></tr></thead>
+<tbody>
+<tr><td>Android</td><td>Yes</td><td>Yes</td><td>System dialog for the PIN</td></tr>
+<tr><td>Windows</td><td>Yes</td><td>No</td><td>Remove in Settings</td></tr>
+<tr><td>macOS</td><td>Yes</td><td>No</td><td>May show a system prompt; remove in System Settings</td></tr>
+<tr><td>Linux</td><td>No</td><td>No</td><td>BlueZ needs a system pairing agent</td></tr>
+<tr><td>iOS</td><td>No</td><td>No</td><td>Handled entirely by the system</td></tr>
+</tbody></table></div></div>
+
+<h2 id="do-you-need-to-pair-at-all">Do you need to pair at all?<a class="anchor" href="#do-you-need-to-pair-at-all" aria-label="Link to this section">#</a></h2>
+<p>Often not. A secure connection requires a bond, but the platform will usually create one for you when you connect, showing the same dialog the explicit call would. Calling <code>connect</code> directly and handling the failure is frequently a better flow than making the user press Pair and then Connect.</p>
+<p>Where you do need it explicitly: when you want to pair well ahead of use, when the device needs a PIN entered outside your app, or when your UI shows a paired-device manager.</p>
+
+<h2 id="reading-the-current-state">Reading the current state<a class="anchor" href="#reading-the-current-state" aria-label="Link to this section">#</a></h2>
+<p>Every device from a scan or from the paired list carries its bond state, so you can label a list without asking separately.</p>
+<div class="codeblock"><pre><code>for (final device in devices) {
+  final label = switch (device.bondState) {
+    BtcBondState.bonded =&gt; 'Paired',
+    BtcBondState.bonding =&gt; 'Pairing...',
+    BtcBondState.none =&gt; 'Not paired',
+  };
+  print('${device.displayName}: $label');
+}</code></pre></div><nav class="next" aria-label="Related guides"><a href="/connect-bluetooth-device">Connect</a><a href="/desktop-bluetooth">Desktop platforms</a></nav>
+      <footer class="pagefoot">
+        flutter_classic_bluetooth is open source under the MIT licence.
+        <a href="https://pub.dev/packages/flutter_classic_bluetooth">pub.dev</a> &middot;
+        <a href="https://github.com/almasumdev/flutter_classic_bluetooth">Source</a> &middot;
+        <a href="https://pub.dev/documentation/flutter_classic_bluetooth/latest/">API reference</a>
+      </footer>
+    </article>
+  </main>
+
+  <aside class="toc"><nav aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ul><li><a href="#install">Install</a></li><li><a href="#pairing">Pairing</a></li><li><a href="#unpairing">Unpairing</a></li><li><a href="#check-first">Check first</a></li><li><a href="#what-each-platform-allows">What each platform allows</a></li><li><a href="#do-you-need-to-pair-at-all">Do you need to pair at all?</a></li><li><a href="#reading-the-current-state">Reading the current state</a></li></ul></nav></aside>
+</div>
+
+<script src="/docs.029eb910a1.js" defer></script>
+</body>
+</html>

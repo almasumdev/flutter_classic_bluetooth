@@ -23,6 +23,19 @@ peripherals) from a single Dart API on **Android, Windows, macOS, Linux, and
 iOS (MFi)**. Connections are exposed as Dart streams, so reading and writing
 bytes feels like any other `Stream`/`Sink`.
 
+> 📘 **[Documentation](https://flutter-classic-bluetooth.web.app)**: guides for
+> [permissions and setup](https://flutter-classic-bluetooth.web.app/bluetooth-permissions),
+> [scanning](https://flutter-classic-bluetooth.web.app/scan-bluetooth-devices),
+> [connecting](https://flutter-classic-bluetooth.web.app/connect-bluetooth-device),
+> [sending and receiving data](https://flutter-classic-bluetooth.web.app/send-receive-data),
+> [running a server](https://flutter-classic-bluetooth.web.app/rfcomm-server),
+> [ESP32](https://flutter-classic-bluetooth.web.app/esp32-bluetooth),
+> [HC-05 and Arduino](https://flutter-classic-bluetooth.web.app/hc-05-arduino),
+> [thermal printers](https://flutter-classic-bluetooth.web.app/bluetooth-thermal-printer),
+> [pairing](https://flutter-classic-bluetooth.web.app/pair-devices),
+> [desktop platforms](https://flutter-classic-bluetooth.web.app/desktop-bluetooth) and
+> [troubleshooting](https://flutter-classic-bluetooth.web.app/troubleshooting).
+
 > ⭐ **Find this useful?** [Star it on GitHub](https://github.com/almasumdev/flutter_classic_bluetooth)
 > and 👍 [like it on pub.dev](https://pub.dev/packages/flutter_classic_bluetooth).
 > It helps other Flutter developers find a maintained Bluetooth Classic plugin.
@@ -202,6 +215,7 @@ and run it, or copy any snippet from [Getting started](#getting-started) below.
 
 ## Other useful links
 
+- [Documentation and guides](https://flutter-classic-bluetooth.web.app)
 - [API reference](https://pub.dev/documentation/flutter_classic_bluetooth/latest/)
 - [Source code on GitHub](https://github.com/almasumdev/flutter_classic_bluetooth)
 - [Changelog](https://github.com/almasumdev/flutter_classic_bluetooth/blob/main/CHANGELOG.md)

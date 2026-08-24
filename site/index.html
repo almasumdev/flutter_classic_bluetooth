@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>flutter_classic_bluetooth - Bluetooth Classic RFCOMM/SPP Plugin for Flutter</title>
+<meta name="description" content="Open source Flutter plugin for Bluetooth Classic serial communication over RFCOMM and SPP. Discover, pair and connect to ESP32, Arduino, HC-05 and thermal printers on Android, Windows, macOS, Linux and iOS.">
+<link rel="canonical" href="https://flutter-classic-bluetooth.web.app/">
+<meta property="og:type" content="article">
+<meta property="og:title" content="flutter_classic_bluetooth - Bluetooth Classic RFCOMM/SPP Plugin for Flutter">
+<meta property="og:description" content="Open source Flutter plugin for Bluetooth Classic serial communication over RFCOMM and SPP. Discover, pair and connect to ESP32, Arduino, HC-05 and thermal printers on Android, Windows, macOS, Linux and iOS.">
+<meta property="og:url" content="https://flutter-classic-bluetooth.web.app/">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.88cd6437e8.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Bluetooth Classic for Flutter", "description": "Open source Flutter plugin for Bluetooth Classic serial communication over RFCOMM and SPP. Discover, pair and connect to ESP32, Arduino, HC-05 and thermal printers on Android, Windows, macOS, Linux and iOS.", "url": "https://flutter-classic-bluetooth.web.app/", "author": {"@type": "Person", "name": "Nurullah Al Masum"}, "about": {"@type": "SoftwareSourceCode", "name": "flutter_classic_bluetooth", "programmingLanguage": "Dart", "codeRepository": "https://github.com/almasumdev/flutter_classic_bluetooth"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Does flutter_classic_bluetooth support Bluetooth Low Energy?", "acceptedAnswer": {"@type": "Answer", "text": "No. It implements Bluetooth Classic RFCOMM and the Serial Port Profile. BLE devices use GATT and need a Bluetooth Low Energy package instead."}}, {"@type": "Question", "name": "Which platforms support Bluetooth Classic in Flutter?", "acceptedAnswer": {"@type": "Answer", "text": "Android, Windows, macOS and Linux support discovery and RFCOMM fully. iOS only reaches MFi certified accessories through the ExternalAccessory framework and cannot discover devices."}}, {"@type": "Question", "name": "Can I connect to an ESP32 or HC-05 from Flutter?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Both expose a standard SPP serial port, so you connect by MAC address using the SPP UUID and read and write bytes."}}]}</script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="topbar">
+  <button class="menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="/"><img src="/logo.svg" alt="" width="24" height="24">flutter_classic_bluetooth</a>
+  <span class="ver">v0.1.10</span>
+  <div class="grow"></div>
+  <a class="ext" href="https://pub.dev/packages/flutter_classic_bluetooth"><span>pub.dev</span></a>
+  <a class="ext" href="https://github.com/almasumdev/flutter_classic_bluetooth" aria-label="Source on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
+</header>
+
+<div class="scrim" aria-hidden="true"></div>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar" aria-label="Documentation"><h2>Start here</h2><ul><li><a href="/" aria-current="page">Introduction</a></li><li><a href="/bluetooth-permissions">Permissions and setup</a></li><li><a href="/scan-bluetooth-devices">Scan for devices</a></li><li><a href="/connect-bluetooth-device">Connect to a device</a></li></ul><h2>Moving data</h2><ul><li><a href="/send-receive-data">Send and receive</a></li><li><a href="/rfcomm-server">Run a server</a></li></ul><h2>Talking to hardware</h2><ul><li><a href="/esp32-bluetooth">ESP32</a></li><li><a href="/hc-05-arduino">HC-05 and Arduino</a></li><li><a href="/bluetooth-thermal-printer">Thermal printers</a></li></ul><h2>Going further</h2><ul><li><a href="/pair-devices">Pair and unpair</a></li><li><a href="/desktop-bluetooth">Windows, macOS, Linux</a></li><li><a href="/troubleshooting">Troubleshooting</a></li></ul></nav>
+
+  <main class="content" id="content">
+    <article>
+      <h1>Bluetooth Classic for Flutter</h1>
+      <p class="lede">Discover, pair and exchange data with Bluetooth Classic devices over RFCOMM, the Serial Port Profile, from one Dart API.</p>
+      <h2 id="install">Install<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>flutter pub add flutter_classic_bluetooth</code></pre></div>
+<div class="codeblock"><pre><code>import 'package:flutter_classic_bluetooth/flutter_classic_bluetooth.dart';</code></pre></div>
+<h2 id="bluetooth-classic-not-bluetooth-low-energy">Bluetooth Classic, not Bluetooth Low Energy<a class="anchor" href="#bluetooth-classic-not-bluetooth-low-energy" aria-label="Link to this section">#</a></h2>
+<p>This plugin speaks <strong>RFCOMM/SPP</strong>: the classic Bluetooth serial transport that ESP32 boards, HC-05 modules, barcode scanners, thermal printers and OBD-II adapters use. It is not a BLE plugin. If your device advertises GATT services and characteristics, you want a Bluetooth Low Energy package instead.</p>
+<p>A connection is a plain byte stream. Reading and writing feels like any other Dart <code>Stream</code> and <code>Sink</code>.</p>
+
+<h2 id="connect-and-talk-to-a-device">Connect and talk to a device<a class="anchor" href="#connect-and-talk-to-a-device" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>final bluetooth = FlutterClassicBluetooth();
+
+final connection = await bluetooth.connect(
+  address: 'AA:BB:CC:DD:EE:FF',
+  uuid: BtcUuid.spp,
+);
+
+connection.input.listen((bytes) =&gt; print('RX ${bytes.length} bytes'));
+await connection.output.writeString('AT');
+
+await connection.finish();</code></pre></div>
+<h2 id="find-a-device-first">Find a device first<a class="anchor" href="#find-a-device-first" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>final devices = await bluetooth.scan(timeout: const Duration(seconds: 10));
+
+for (final device in devices) {
+  print('${device.displayName}  ${device.address}  ${device.rssi} dBm');
+}</code></pre></div>
+<p><code>scan</code> collects discovery results, deduplicates them by address and sorts by signal strength. For a live list that fills in as devices appear, listen to <a href="/scan-bluetooth-devices">the discovery stream</a> instead.</p>
+
+<h2 id="what-it-can-do">What it can do<a class="anchor" href="#what-it-can-do" aria-label="Link to this section">#</a></h2>
+<ul>
+<li>Discover nearby devices and list the ones already paired.</li>
+<li>Connect over RFCOMM by MAC address and service UUID, then read and write bytes.</li>
+<li>Run an RFCOMM <a href="/rfcomm-server">server</a> that accepts incoming connections.</li>
+<li>Pair and unpair, toggle the adapter, and make the device discoverable, where the platform allows it.</li>
+<li>Reconnect automatically with a backoff policy when a link drops.</li>
+<li>Ask at runtime which of those the current platform actually supports.</li>
+</ul>
+
+<h2 id="where-it-runs">Where it runs<a class="anchor" href="#where-it-runs" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><div class="tablewrap"><table>
+<thead><tr><th>Platform</th><th>Backend</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>Android</td><td><code>BluetoothSocket</code></td><td>Everything, including server mode</td></tr>
+<tr><td>Windows</td><td>Winsock2 <code>AF_BTH</code></td><td>No unpair</td></tr>
+<tr><td>macOS</td><td>IOBluetooth</td><td>Unpair via System Settings only</td></tr>
+<tr><td>Linux</td><td>BlueZ RFCOMM</td><td>Pairing needs a system agent</td></tr>
+<tr><td>iOS</td><td>ExternalAccessory</td><td>MFi accessories only, no discovery</td></tr>
+</tbody></table></div></div>
+<p>Rather than guessing, ask:</p>
+<div class="codeblock"><pre><code>final caps = await bluetooth.getPlatformCapabilities();
+
+if (caps.canDiscoverDevices) {
+  // show the scan button
+}</code></pre></div>
+<p>See <a href="/desktop-bluetooth">the desktop guide</a> for what differs on Windows, macOS and Linux.</p>
+
+<h2 id="start-here">Start here<a class="anchor" href="#start-here" aria-label="Link to this section">#</a></h2>
+<p>Set up <a href="/bluetooth-permissions">permissions</a> first, since nothing works without them on Android. Then <a href="/scan-bluetooth-devices">scan</a>, <a href="/connect-bluetooth-device">connect</a>, and <a href="/send-receive-data">move some bytes</a>. If you are wiring up a specific board, jump straight to <a href="/esp32-bluetooth">ESP32</a>, <a href="/hc-05-arduino">HC-05</a>, or a <a href="/bluetooth-thermal-printer">thermal printer</a>.</p>
+<nav class="next" aria-label="Related guides"><a href="/bluetooth-permissions">Permissions</a><a href="/connect-bluetooth-device">Connect</a></nav>
+      <footer class="pagefoot">
+        flutter_classic_bluetooth is open source under the MIT licence.
+        <a href="https://pub.dev/packages/flutter_classic_bluetooth">pub.dev</a> &middot;
+        <a href="https://github.com/almasumdev/flutter_classic_bluetooth">Source</a> &middot;
+        <a href="https://pub.dev/documentation/flutter_classic_bluetooth/latest/">API reference</a>
+      </footer>
+    </article>
+  </main>
+
+  <aside class="toc"><nav aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ul><li><a href="#install">Install</a></li><li><a href="#bluetooth-classic-not-bluetooth-low-energy">Bluetooth Classic, not Bluetooth Low Energy</a></li><li><a href="#connect-and-talk-to-a-device">Connect and talk to a device</a></li><li><a href="#find-a-device-first">Find a device first</a></li><li><a href="#what-it-can-do">What it can do</a></li><li><a href="#where-it-runs">Where it runs</a></li><li><a href="#start-here">Start here</a></li></ul></nav></aside>
+</div>
+
+<script src="/docs.029eb910a1.js" defer></script>
+</body>
+</html>

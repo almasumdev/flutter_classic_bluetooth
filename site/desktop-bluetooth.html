@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bluetooth Classic on Windows, macOS and Linux in Flutter</title>
+<meta name="description" content="What Bluetooth Classic support looks like on Flutter desktop: the Winsock2, IOBluetooth and BlueZ backends, what each one cannot do, and how to write one UI that adapts.">
+<link rel="canonical" href="https://flutter-classic-bluetooth.web.app/desktop-bluetooth">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Bluetooth Classic on Windows, macOS and Linux in Flutter">
+<meta property="og:description" content="What Bluetooth Classic support looks like on Flutter desktop: the Winsock2, IOBluetooth and BlueZ backends, what each one cannot do, and how to write one UI that adapts.">
+<meta property="og:url" content="https://flutter-classic-bluetooth.web.app/desktop-bluetooth">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.88cd6437e8.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Windows, macOS and Linux", "description": "What Bluetooth Classic support looks like on Flutter desktop: the Winsock2, IOBluetooth and BlueZ backends, what each one cannot do, and how to write one UI that adapts.", "url": "https://flutter-classic-bluetooth.web.app/desktop-bluetooth", "author": {"@type": "Person", "name": "Nurullah Al Masum"}, "about": {"@type": "SoftwareSourceCode", "name": "flutter_classic_bluetooth", "programmingLanguage": "Dart", "codeRepository": "https://github.com/almasumdev/flutter_classic_bluetooth"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Does Bluetooth Classic work on Flutter desktop?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Windows uses Winsock2 AF_BTH, macOS uses IOBluetooth and Linux uses BlueZ. Discovery, paired devices, RFCOMM connections and server mode work on all three."}}, {"@type": "Question", "name": "Why can I not pair a Bluetooth device on Linux from Flutter?", "acceptedAnswer": {"@type": "Answer", "text": "BlueZ delegates PIN and passkey handling to a system pairing agent that a Flutter app does not register. Pair with bluetoothctl or the desktop Bluetooth settings, then connect."}}, {"@type": "Question", "name": "How do I read Bluetooth signal strength on an open connection?", "acceptedAnswer": {"@type": "Answer", "text": "Call readRssi, which is supported on macOS only. Check canReadConnectionRssi first. Discovery-time RSSI is on BtcDevice.rssi and is available on every platform."}}]}</script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="topbar">
+  <button class="menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="/"><img src="/logo.svg" alt="" width="24" height="24">flutter_classic_bluetooth</a>
+  <span class="ver">v0.1.10</span>
+  <div class="grow"></div>
+  <a class="ext" href="https://pub.dev/packages/flutter_classic_bluetooth"><span>pub.dev</span></a>
+  <a class="ext" href="https://github.com/almasumdev/flutter_classic_bluetooth" aria-label="Source on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
+</header>
+
+<div class="scrim" aria-hidden="true"></div>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar" aria-label="Documentation"><h2>Start here</h2><ul><li><a href="/">Introduction</a></li><li><a href="/bluetooth-permissions">Permissions and setup</a></li><li><a href="/scan-bluetooth-devices">Scan for devices</a></li><li><a href="/connect-bluetooth-device">Connect to a device</a></li></ul><h2>Moving data</h2><ul><li><a href="/send-receive-data">Send and receive</a></li><li><a href="/rfcomm-server">Run a server</a></li></ul><h2>Talking to hardware</h2><ul><li><a href="/esp32-bluetooth">ESP32</a></li><li><a href="/hc-05-arduino">HC-05 and Arduino</a></li><li><a href="/bluetooth-thermal-printer">Thermal printers</a></li></ul><h2>Going further</h2><ul><li><a href="/pair-devices">Pair and unpair</a></li><li><a href="/desktop-bluetooth" aria-current="page">Windows, macOS, Linux</a></li><li><a href="/troubleshooting">Troubleshooting</a></li></ul></nav>
+
+  <main class="content" id="content">
+    <article>
+      <h1>Windows, macOS and Linux</h1>
+      <p class="lede">Desktop Bluetooth Classic works, with a different gap on each platform.</p>
+      <h2 id="install">Install<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>flutter pub add flutter_classic_bluetooth</code></pre></div>
+<div class="codeblock"><pre><code>import 'package:flutter_classic_bluetooth/flutter_classic_bluetooth.dart';</code></pre></div>
+<h2 id="the-backends">The backends<a class="anchor" href="#the-backends" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><div class="tablewrap"><table>
+<thead><tr><th>Platform</th><th>Native API</th></tr></thead>
+<tbody>
+<tr><td>Windows</td><td>Winsock2 <code>AF_BTH</code> sockets</td></tr>
+<tr><td>macOS</td><td>IOBluetooth</td></tr>
+<tr><td>Linux</td><td>BlueZ RFCOMM sockets over D-Bus</td></tr>
+</tbody></table></div></div>
+<p>The Dart API is identical across all three. Anything unavailable throws <code>BtcUnsupportedException</code> rather than failing quietly or returning an empty result.</p>
+
+<h2 id="what-differs">What differs<a class="anchor" href="#what-differs" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><div class="tablewrap"><table>
+<thead><tr><th>Feature</th><th>Windows</th><th>macOS</th><th>Linux</th></tr></thead>
+<tbody>
+<tr><td>Discovery</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Paired devices</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>RFCOMM connect</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>RFCOMM server</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+<tr><td>Pair</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+<tr><td>Unpair</td><td>No</td><td>No</td><td>No</td></tr>
+<tr><td>Enable / disable adapter</td><td>No</td><td>No</td><td>Yes</td></tr>
+<tr><td>Set discoverable</td><td>Yes</td><td>No</td><td>Yes</td></tr>
+<tr><td>Connection RSSI</td><td>No</td><td>Yes</td><td>No</td></tr>
+</tbody></table></div></div>
+
+<h2 id="windows">Windows<a class="anchor" href="#windows" aria-label="Link to this section">#</a></h2>
+<p>Nothing to configure. No manifest entry, no capability declaration, no extra dependency. Pairing works and shows the Windows pairing flow; removing a pairing has no public API, so that has to happen in Settings.</p>
+
+<h2 id="macos">macOS<a class="anchor" href="#macos" aria-label="Link to this section">#</a></h2>
+<p>Add the Bluetooth entitlement to both <code>DebugProfile.entitlements</code> and <code>Release.entitlements</code>, or a sandboxed build sees nothing:</p>
+<div class="codeblock"><pre><code>&lt;key&gt;com.apple.security.device.bluetooth&lt;/key&gt;
+&lt;true/&gt;</code></pre></div>
+<p>macOS is the only platform that reports live signal strength on an open connection.</p>
+<div class="codeblock"><pre><code>final caps = await bluetooth.getPlatformCapabilities();
+if (caps.canReadConnectionRssi) {
+  final rssi = await connection.readRssi();
+  print('$rssi dBm');
+}</code></pre></div>
+<p>Everywhere else <code>readRssi</code> throws, because no public Bluetooth Classic API exposes it. Discovery-time RSSI on <code>BtcDevice.rssi</code> is separate and available everywhere.</p>
+
+<h2 id="linux">Linux<a class="anchor" href="#linux" aria-label="Link to this section">#</a></h2>
+<p>The native plugin links against GTK and BlueZ, so the development packages have to be present or the build fails at CMake:</p>
+<div class="codeblock"><pre><code>sudo apt-get install -y libgtk-3-dev libbluetooth-dev ninja-build cmake pkg-config clang</code></pre></div>
+<p>Linux is the only desktop that can turn the adapter on and off. It cannot pair, because BlueZ delegates PIN and passkey handling to a system pairing agent that a Flutter app does not provide. Pair with <code>bluetoothctl</code> or the desktop's Bluetooth settings, then connect normally.</p>
+
+<h2 id="one-ui-every-platform">One UI, every platform<a class="anchor" href="#one-ui-every-platform" aria-label="Link to this section">#</a></h2>
+<p>Reading capabilities rather than checking <code>Platform.isWindows</code> keeps the code honest, and keeps working when a gap gets filled in a later release.</p>
+<div class="codeblock"><pre><code>final caps = await bluetooth.getPlatformCapabilities();
+
+setState(() {
+  showScanButton    = caps.canDiscoverDevices;
+  showPairButton    = caps.canBondDevices;
+  showForgetButton  = caps.canUnbondDevices;
+  showAdapterToggle = caps.canEnableBluetooth;
+  showServerTab     = caps.canCreateServer;
+});</code></pre></div>
+<p>Wrap anything you cannot gate in a <code>try</code> for <code>BtcUnsupportedException</code>, so an unexpected platform degrades instead of crashing.</p>
+<nav class="next" aria-label="Related guides"><a href="/bluetooth-permissions">Permissions</a><a href="/rfcomm-server">Run a server</a></nav>
+      <footer class="pagefoot">
+        flutter_classic_bluetooth is open source under the MIT licence.
+        <a href="https://pub.dev/packages/flutter_classic_bluetooth">pub.dev</a> &middot;
+        <a href="https://github.com/almasumdev/flutter_classic_bluetooth">Source</a> &middot;
+        <a href="https://pub.dev/documentation/flutter_classic_bluetooth/latest/">API reference</a>
+      </footer>
+    </article>
+  </main>
+
+  <aside class="toc"><nav aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ul><li><a href="#install">Install</a></li><li><a href="#the-backends">The backends</a></li><li><a href="#what-differs">What differs</a></li><li><a href="#windows">Windows</a></li><li><a href="#macos">macOS</a></li><li><a href="#linux">Linux</a></li><li><a href="#one-ui-every-platform">One UI, every platform</a></li></ul></nav></aside>
+</div>
+
+<script src="/docs.029eb910a1.js" defer></script>
+</body>
+</html>

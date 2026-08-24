@@ -1,3 +1,16 @@
+## 0.1.10
+
+Documentation and discoverability. No API or behaviour change.
+
+### Changed
+
+- Added a documentation website at https://flutter-classic-bluetooth.web.app,
+  with task-based guides for permissions and platform setup, scanning,
+  connecting, sending and receiving data, running an RFCOMM server, ESP32,
+  HC-05 and Arduino, Bluetooth thermal printers, pairing, the desktop
+  platforms, and troubleshooting. Linked from the package page via the
+  `documentation` field, and from the README.
+
 ## 0.1.9
 
 ### Fixed

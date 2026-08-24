@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://flutter-classic-bluetooth.web.app/</loc><changefreq>monthly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://flutter-classic-bluetooth.web.app/bluetooth-permissions</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://flutter-classic-bluetooth.web.app/scan-bluetooth-devices</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://flutter-classic-bluetooth.web.app/connect-bluetooth-device</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://flutter-classic-bluetooth.web.app/send-receive-data</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://flutter-classic-bluetooth.web.app/rfcomm-server</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://flutter-classic-bluetooth.web.app/esp32-bluetooth</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://flutter-classic-bluetooth.web.app/hc-05-arduino</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://flutter-classic-bluetooth.web.app/bluetooth-thermal-printer</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://flutter-classic-bluetooth.web.app/pair-devices</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://flutter-classic-bluetooth.web.app/desktop-bluetooth</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://flutter-classic-bluetooth.web.app/troubleshooting</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+</urlset>

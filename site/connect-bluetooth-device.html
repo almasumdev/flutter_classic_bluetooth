@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How to Connect to a Bluetooth Classic Device in Flutter</title>
+<meta name="description" content="Open an RFCOMM connection to a Bluetooth Classic device from Flutter by MAC address and service UUID, handle timeouts, and reconnect automatically when the link drops.">
+<link rel="canonical" href="https://flutter-classic-bluetooth.web.app/connect-bluetooth-device">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Connect to a Bluetooth Classic Device in Flutter">
+<meta property="og:description" content="Open an RFCOMM connection to a Bluetooth Classic device from Flutter by MAC address and service UUID, handle timeouts, and reconnect automatically when the link drops.">
+<meta property="og:url" content="https://flutter-classic-bluetooth.web.app/connect-bluetooth-device">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.88cd6437e8.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Connect to a device", "description": "Open an RFCOMM connection to a Bluetooth Classic device from Flutter by MAC address and service UUID, handle timeouts, and reconnect automatically when the link drops.", "url": "https://flutter-classic-bluetooth.web.app/connect-bluetooth-device", "author": {"@type": "Person", "name": "Nurullah Al Masum"}, "about": {"@type": "SoftwareSourceCode", "name": "flutter_classic_bluetooth", "programmingLanguage": "Dart", "codeRepository": "https://github.com/almasumdev/flutter_classic_bluetooth"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "What UUID do I use to connect to a Bluetooth serial device?", "acceptedAnswer": {"@type": "Answer", "text": "The Serial Port Profile UUID, 00001101-0000-1000-8000-00805F9B34FB, available as BtcUuid.spp and used by default. Almost every serial device including ESP32, HC-05 and most thermal printers uses it."}}, {"@type": "Question", "name": "Why does connecting to a Bluetooth device hang in Flutter?", "acceptedAnswer": {"@type": "Answer", "text": "A native connect to a device that is off or out of range can block for a long time. Pass a timeout to connect so it fails with BtcTimeoutException instead."}}, {"@type": "Question", "name": "How do I reconnect automatically when a Bluetooth connection drops?", "acceptedAnswer": {"@type": "Answer", "text": "Use connectWithReconnect with a BtcReconnectPolicy. It retries with exponential backoff and keeps one input stream alive across drops."}}]}</script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="topbar">
+  <button class="menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="/"><img src="/logo.svg" alt="" width="24" height="24">flutter_classic_bluetooth</a>
+  <span class="ver">v0.1.10</span>
+  <div class="grow"></div>
+  <a class="ext" href="https://pub.dev/packages/flutter_classic_bluetooth"><span>pub.dev</span></a>
+  <a class="ext" href="https://github.com/almasumdev/flutter_classic_bluetooth" aria-label="Source on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
+</header>
+
+<div class="scrim" aria-hidden="true"></div>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar" aria-label="Documentation"><h2>Start here</h2><ul><li><a href="/">Introduction</a></li><li><a href="/bluetooth-permissions">Permissions and setup</a></li><li><a href="/scan-bluetooth-devices">Scan for devices</a></li><li><a href="/connect-bluetooth-device" aria-current="page">Connect to a device</a></li></ul><h2>Moving data</h2><ul><li><a href="/send-receive-data">Send and receive</a></li><li><a href="/rfcomm-server">Run a server</a></li></ul><h2>Talking to hardware</h2><ul><li><a href="/esp32-bluetooth">ESP32</a></li><li><a href="/hc-05-arduino">HC-05 and Arduino</a></li><li><a href="/bluetooth-thermal-printer">Thermal printers</a></li></ul><h2>Going further</h2><ul><li><a href="/pair-devices">Pair and unpair</a></li><li><a href="/desktop-bluetooth">Windows, macOS, Linux</a></li><li><a href="/troubleshooting">Troubleshooting</a></li></ul></nav>
+
+  <main class="content" id="content">
+    <article>
+      <h1>Connect to a device</h1>
+      <p class="lede">A connection needs two things: a MAC address and a service UUID.</p>
+      <h2 id="install">Install<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>flutter pub add flutter_classic_bluetooth</code></pre></div>
+<div class="codeblock"><pre><code>import 'package:flutter_classic_bluetooth/flutter_classic_bluetooth.dart';</code></pre></div>
+<h2 id="opening-a-connection">Opening a connection<a class="anchor" href="#opening-a-connection" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>final bluetooth = FlutterClassicBluetooth();
+
+final connection = await bluetooth.connect(
+  address: 'AA:BB:CC:DD:EE:FF',
+  uuid: BtcUuid.spp,
+);
+
+print(connection.isConnected);   // true</code></pre></div>
+<p><code>BtcUuid.spp</code> is <code>00001101-0000-1000-8000-00805F9B34FB</code>, the Serial Port Profile, and it is the default. Nearly every serial device uses it: ESP32, HC-05, Arduino modules, most thermal printers. Pass a different UUID only if the vendor documents one.</p>
+<p>An invalid address throws <code>BtcAddressException</code> and a malformed UUID throws <code>BtcUuidException</code>, both before any radio work happens.</p>
+
+<h2 id="always-set-a-timeout">Always set a timeout<a class="anchor" href="#always-set-a-timeout" aria-label="Link to this section">#</a></h2>
+<p>Without one, a connect to a device that is off or out of range can hang for a long time, and how long is up to the platform.</p>
+<div class="codeblock"><pre><code>try {
+  final connection = await bluetooth.connect(
+    address: device.address,
+    timeout: const Duration(seconds: 8),
+  );
+} on BtcTimeoutException {
+  // Device is off, out of range, or already connected to something else.
+} on BtcConnectionException catch (e) {
+  // Refused, or the service UUID is not offered.
+  print(e.message);
+}</code></pre></div>
+<p>A native connect cannot be cancelled once it starts. If the attempt succeeds after your deadline has passed, the plugin closes and releases that connection for you, so a late arrival does not leak an open socket and two event channels for the life of the app.</p>
+
+<h2 id="secure-and-insecure">Secure and insecure<a class="anchor" href="#secure-and-insecure" aria-label="Link to this section">#</a></h2>
+<p><code>secure</code> defaults to <code>true</code>, which means an authenticated and encrypted RFCOMM channel and a device that must be paired first. Some older modules only accept an insecure channel.</p>
+<div class="codeblock"><pre><code>final connection = await bluetooth.connect(
+  address: device.address,
+  secure: false,
+);</code></pre></div>
+<p>Try secure first. Fall back to insecure only when a device refuses, and be aware the link is then unencrypted.</p>
+
+<h2 id="watching-the-link">Watching the link<a class="anchor" href="#watching-the-link" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>connection.stateStream.listen((state) {
+  switch (state) {
+    case BtcConnectionState.connected:
+      // ready
+    case BtcConnectionState.disconnected:
+      // the device went away
+    default:
+      break;
+  }
+});</code></pre></div>
+<h2 id="closing-properly">Closing properly<a class="anchor" href="#closing-properly" aria-label="Link to this section">#</a></h2>
+<p>There are two ways to end a connection, and the difference matters.</p>
+<div class="codeblock"><pre><code>await connection.finish();   // flush pending writes, then close
+await connection.close();    // close now, drop anything queued</code></pre></div>
+<p>Use <code>finish</code> in almost every case. <code>close</code> is for teardown when you no longer care whether the last bytes arrived, such as in <code>dispose</code> after an error.</p>
+
+<h2 id="reconnecting-on-its-own">Reconnecting on its own<a class="anchor" href="#reconnecting-on-its-own" aria-label="Link to this section">#</a></h2>
+<p>A serial link over the air drops. If your app should survive that without the user doing anything, use a reconnecting connection instead of managing retries yourself.</p>
+<div class="codeblock"><pre><code>final link = bluetooth.connectWithReconnect(
+  address: 'AA:BB:CC:DD:EE:FF',
+  policy: const BtcReconnectPolicy(
+    initialBackoff: Duration(seconds: 1),
+    maxBackoff: Duration(seconds: 30),
+    backoffMultiplier: 2.0,
+    connectTimeout: Duration(seconds: 8),
+  ),
+);
+
+link.input.listen((bytes) =&gt; handle(bytes));
+link.state.listen((s) =&gt; print('link: $s'));
+
+await link.sendLine('PING');
+await link.close();</code></pre></div>
+<p>The input stream survives a drop, so a listener set up once keeps receiving after the link comes back. Backoff grows from <code>initialBackoff</code> by <code>backoffMultiplier</code> up to <code>maxBackoff</code>, which keeps a device that is simply switched off from being hammered.</p>
+
+<h2 id="several-devices-at-once">Several devices at once<a class="anchor" href="#several-devices-at-once" aria-label="Link to this section">#</a></h2>
+<p>Where the platform allows it, connections are independent and you can hold more than one.</p>
+<div class="codeblock"><pre><code>final caps = await bluetooth.getPlatformCapabilities();
+if (caps.supportsMultipleConnections) {
+  final scanner = await bluetooth.connect(address: scannerMac);
+  final printer = await bluetooth.connect(address: printerMac);
+}</code></pre></div><nav class="next" aria-label="Related guides"><a href="/send-receive-data">Send and receive</a><a href="/troubleshooting">Troubleshooting</a></nav>
+      <footer class="pagefoot">
+        flutter_classic_bluetooth is open source under the MIT licence.
+        <a href="https://pub.dev/packages/flutter_classic_bluetooth">pub.dev</a> &middot;
+        <a href="https://github.com/almasumdev/flutter_classic_bluetooth">Source</a> &middot;
+        <a href="https://pub.dev/documentation/flutter_classic_bluetooth/latest/">API reference</a>
+      </footer>
+    </article>
+  </main>
+
+  <aside class="toc"><nav aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ul><li><a href="#install">Install</a></li><li><a href="#opening-a-connection">Opening a connection</a></li><li><a href="#always-set-a-timeout">Always set a timeout</a></li><li><a href="#secure-and-insecure">Secure and insecure</a></li><li><a href="#watching-the-link">Watching the link</a></li><li><a href="#closing-properly">Closing properly</a></li><li><a href="#reconnecting-on-its-own">Reconnecting on its own</a></li><li><a href="#several-devices-at-once">Several devices at once</a></li></ul></nav></aside>
+</div>
+
+<script src="/docs.029eb910a1.js" defer></script>
+</body>
+</html>

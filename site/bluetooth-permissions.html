@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bluetooth Permissions Setup in Flutter (Android, iOS, macOS, Linux)</title>
+<meta name="description" content="The manifest entries, plist keys, entitlements and Linux packages a Flutter app needs before it can scan for or connect to a Bluetooth Classic device.">
+<link rel="canonical" href="https://flutter-classic-bluetooth.web.app/bluetooth-permissions">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Bluetooth Permissions Setup in Flutter (Android, iOS, macOS, Linux)">
+<meta property="og:description" content="The manifest entries, plist keys, entitlements and Linux packages a Flutter app needs before it can scan for or connect to a Bluetooth Classic device.">
+<meta property="og:url" content="https://flutter-classic-bluetooth.web.app/bluetooth-permissions">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.88cd6437e8.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Permissions and setup", "description": "The manifest entries, plist keys, entitlements and Linux packages a Flutter app needs before it can scan for or connect to a Bluetooth Classic device.", "url": "https://flutter-classic-bluetooth.web.app/bluetooth-permissions", "author": {"@type": "Person", "name": "Nurullah Al Masum"}, "about": {"@type": "SoftwareSourceCode", "name": "flutter_classic_bluetooth", "programmingLanguage": "Dart", "codeRepository": "https://github.com/almasumdev/flutter_classic_bluetooth"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Why does Bluetooth scanning need location permission on Android?", "acceptedAnswer": {"@type": "Answer", "text": "On Android 11 and below the list of nearby Bluetooth devices can reveal where a user is, so the system gates scanning behind ACCESS_FINE_LOCATION. Android 12 replaced it with BLUETOOTH_SCAN, which you can declare with neverForLocation."}}, {"@type": "Question", "name": "Why can my Flutter app not see a Bluetooth device on iOS?", "acceptedAnswer": {"@type": "Answer", "text": "iOS only exposes MFi certified accessories, and only those whose protocol string is listed in UISupportedExternalAccessoryProtocols. Generic modules such as HC-05 and ESP32 are not reachable on iOS."}}, {"@type": "Question", "name": "Do I need a permission package to request Bluetooth permissions?", "acceptedAnswer": {"@type": "Answer", "text": "No. The plugin requests the Android runtime permissions it needs when you call a method that requires one."}}]}</script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="topbar">
+  <button class="menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="/"><img src="/logo.svg" alt="" width="24" height="24">flutter_classic_bluetooth</a>
+  <span class="ver">v0.1.10</span>
+  <div class="grow"></div>
+  <a class="ext" href="https://pub.dev/packages/flutter_classic_bluetooth"><span>pub.dev</span></a>
+  <a class="ext" href="https://github.com/almasumdev/flutter_classic_bluetooth" aria-label="Source on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
+</header>
+
+<div class="scrim" aria-hidden="true"></div>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar" aria-label="Documentation"><h2>Start here</h2><ul><li><a href="/">Introduction</a></li><li><a href="/bluetooth-permissions" aria-current="page">Permissions and setup</a></li><li><a href="/scan-bluetooth-devices">Scan for devices</a></li><li><a href="/connect-bluetooth-device">Connect to a device</a></li></ul><h2>Moving data</h2><ul><li><a href="/send-receive-data">Send and receive</a></li><li><a href="/rfcomm-server">Run a server</a></li></ul><h2>Talking to hardware</h2><ul><li><a href="/esp32-bluetooth">ESP32</a></li><li><a href="/hc-05-arduino">HC-05 and Arduino</a></li><li><a href="/bluetooth-thermal-printer">Thermal printers</a></li></ul><h2>Going further</h2><ul><li><a href="/pair-devices">Pair and unpair</a></li><li><a href="/desktop-bluetooth">Windows, macOS, Linux</a></li><li><a href="/troubleshooting">Troubleshooting</a></li></ul></nav>
+
+  <main class="content" id="content">
+    <article>
+      <h1>Permissions and setup</h1>
+      <p class="lede">Bluetooth fails silently without the right declarations. Do this before anything else.</p>
+      <h2 id="install">Install<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>flutter pub add flutter_classic_bluetooth</code></pre></div>
+<div class="codeblock"><pre><code>import 'package:flutter_classic_bluetooth/flutter_classic_bluetooth.dart';</code></pre></div>
+<h2 id="android">Android<a class="anchor" href="#android" aria-label="Link to this section">#</a></h2>
+<p>Android split its Bluetooth permissions at API 31, so a manifest that covers both old and new devices needs both sets. Add these to <code>android/app/src/main/AndroidManifest.xml</code>, inside <code>&lt;manifest&gt;</code> and above <code>&lt;application&gt;</code>.</p>
+<div class="codeblock"><pre><code>&lt;!-- Android 11 (API 30) and below --&gt;
+&lt;uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" /&gt;
+&lt;uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" /&gt;
+&lt;uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" /&gt;
+
+&lt;!-- Android 12 (API 31) and above --&gt;
+&lt;uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" /&gt;
+&lt;uses-permission android:name="android.permission.BLUETOOTH_CONNECT" /&gt;
+&lt;uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" /&gt;</code></pre></div>
+<p>Two things trip people up here. On Android 11 and below, <strong>scanning requires location permission</strong>, because a nearby-device list can be used to infer where someone is. And on Android 12 and above, <code>BLUETOOTH_SCAN</code> and <code>BLUETOOTH_CONNECT</code> are runtime permissions, so declaring them is not enough. The plugin prompts for them when you call a method that needs one.</p>
+<p><code>neverForLocation</code> tells Android you are not using scan results to derive location, which keeps the permission prompt narrower. Drop that flag if you genuinely do.</p>
+
+<h2 id="ios">iOS<a class="anchor" href="#ios" aria-label="Link to this section">#</a></h2>
+<p>iOS only reaches <strong>MFi certified accessories</strong>, and only ones whose protocol string you declare up front. Add to <code>ios/Runner/Info.plist</code>:</p>
+<div class="codeblock"><pre><code>&lt;key&gt;UISupportedExternalAccessoryProtocols&lt;/key&gt;
+&lt;array&gt;
+  &lt;string&gt;com.example.spp&lt;/string&gt;
+&lt;/array&gt;
+&lt;key&gt;NSBluetoothAlwaysUsageDescription&lt;/key&gt;
+&lt;string&gt;This app communicates with Bluetooth accessories.&lt;/string&gt;</code></pre></div>
+<p>Replace <code>com.example.spp</code> with the protocol string your accessory vendor gave you. An accessory whose string is not listed is invisible to your app, and there is no way around that from Dart. A generic HC-05 or ESP32 will not work on iOS at all, because neither is MFi certified.</p>
+
+<h2 id="macos">macOS<a class="anchor" href="#macos" aria-label="Link to this section">#</a></h2>
+<p>Add the entitlement to both <code>macos/Runner/DebugProfile.entitlements</code> and <code>Release.entitlements</code>:</p>
+<div class="codeblock"><pre><code>&lt;key&gt;com.apple.security.device.bluetooth&lt;/key&gt;
+&lt;true/&gt;</code></pre></div>
+<p>Sandboxed builds silently see no devices without it.</p>
+
+<h2 id="linux">Linux<a class="anchor" href="#linux" aria-label="Link to this section">#</a></h2>
+<p>The native plugin compiles against GTK and BlueZ. Missing headers show up as a CMake error mentioning <code>gtk+-3.0</code> or <code>bluetooth/bluetooth.h</code>, not as a runtime failure.</p>
+<div class="codeblock"><pre><code>sudo apt-get install -y libgtk-3-dev libbluetooth-dev ninja-build cmake pkg-config clang</code></pre></div>
+<p>On Fedora: <code>gtk3-devel bluez-libs-devel ninja-build cmake clang</code>. On Arch: <code>gtk3 bluez-libs ninja cmake clang</code>.</p>
+
+<h2 id="windows">Windows<a class="anchor" href="#windows" aria-label="Link to this section">#</a></h2>
+<p>Nothing to declare. The plugin uses Winsock2 <code>AF_BTH</code> sockets, which need no manifest entry or capability.</p>
+
+<h2 id="check-before-you-call">Check before you call<a class="anchor" href="#check-before-you-call" aria-label="Link to this section">#</a></h2>
+<p>Once setup is done, confirm the adapter is actually usable rather than assuming it.</p>
+<div class="codeblock"><pre><code>final bluetooth = FlutterClassicBluetooth();
+
+if (!await bluetooth.isSupported()) {
+  // No Bluetooth Classic radio, or an unsupported platform.
+  return;
+}
+
+if (!await bluetooth.isEnabled()) {
+  final caps = await bluetooth.getPlatformCapabilities();
+  if (caps.canEnableBluetooth) {
+    await bluetooth.enableBluetooth();   // Android and Linux
+  } else {
+    // Ask the user to turn it on in system settings.
+  }
+}</code></pre></div><nav class="next" aria-label="Related guides"><a href="/scan-bluetooth-devices">Scan for devices</a><a href="/troubleshooting">Troubleshooting</a></nav>
+      <footer class="pagefoot">
+        flutter_classic_bluetooth is open source under the MIT licence.
+        <a href="https://pub.dev/packages/flutter_classic_bluetooth">pub.dev</a> &middot;
+        <a href="https://github.com/almasumdev/flutter_classic_bluetooth">Source</a> &middot;
+        <a href="https://pub.dev/documentation/flutter_classic_bluetooth/latest/">API reference</a>
+      </footer>
+    </article>
+  </main>
+
+  <aside class="toc"><nav aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ul><li><a href="#install">Install</a></li><li><a href="#android">Android</a></li><li><a href="#ios">iOS</a></li><li><a href="#macos">macOS</a></li><li><a href="#linux">Linux</a></li><li><a href="#windows">Windows</a></li><li><a href="#check-before-you-call">Check before you call</a></li></ul></nav></aside>
+</div>
+
+<script src="/docs.029eb910a1.js" defer></script>
+</body>
+</html>

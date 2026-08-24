@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bluetooth Classic Errors in Flutter and How to Fix Them</title>
+<meta name="description" content="The typed exceptions flutter_classic_bluetooth throws, what each one actually means, and the recurring causes behind connections that hang, drop or deliver nothing.">
+<link rel="canonical" href="https://flutter-classic-bluetooth.web.app/troubleshooting">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Bluetooth Classic Errors in Flutter and How to Fix Them">
+<meta property="og:description" content="The typed exceptions flutter_classic_bluetooth throws, what each one actually means, and the recurring causes behind connections that hang, drop or deliver nothing.">
+<meta property="og:url" content="https://flutter-classic-bluetooth.web.app/troubleshooting">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.88cd6437e8.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Troubleshooting", "description": "The typed exceptions flutter_classic_bluetooth throws, what each one actually means, and the recurring causes behind connections that hang, drop or deliver nothing.", "url": "https://flutter-classic-bluetooth.web.app/troubleshooting", "author": {"@type": "Person", "name": "Nurullah Al Masum"}, "about": {"@type": "SoftwareSourceCode", "name": "flutter_classic_bluetooth", "programmingLanguage": "Dart", "codeRepository": "https://github.com/almasumdev/flutter_classic_bluetooth"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Why does my Flutter Bluetooth scan return no devices?", "acceptedAnswer": {"@type": "Answer", "text": "Check the manifest permissions, whether the runtime prompt was denied, whether the adapter is on, and on Android 11 and below whether system location services are enabled. iOS has no Bluetooth Classic discovery API at all."}}, {"@type": "Question", "name": "Why does connect hang forever in Flutter Bluetooth?", "acceptedAnswer": {"@type": "Answer", "text": "Because no timeout was passed. The native call blocks for a platform-decided period when the device is off or out of range. Pass a timeout so it throws BtcTimeoutException instead."}}, {"@type": "Question", "name": "Why did the last data I sent over Bluetooth never arrive?", "acceptedAnswer": {"@type": "Answer", "text": "close discards queued writes. Await allSent and call finish, which flushes pending writes before closing the connection."}}]}</script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="topbar">
+  <button class="menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="/"><img src="/logo.svg" alt="" width="24" height="24">flutter_classic_bluetooth</a>
+  <span class="ver">v0.1.10</span>
+  <div class="grow"></div>
+  <a class="ext" href="https://pub.dev/packages/flutter_classic_bluetooth"><span>pub.dev</span></a>
+  <a class="ext" href="https://github.com/almasumdev/flutter_classic_bluetooth" aria-label="Source on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
+</header>
+
+<div class="scrim" aria-hidden="true"></div>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar" aria-label="Documentation"><h2>Start here</h2><ul><li><a href="/">Introduction</a></li><li><a href="/bluetooth-permissions">Permissions and setup</a></li><li><a href="/scan-bluetooth-devices">Scan for devices</a></li><li><a href="/connect-bluetooth-device">Connect to a device</a></li></ul><h2>Moving data</h2><ul><li><a href="/send-receive-data">Send and receive</a></li><li><a href="/rfcomm-server">Run a server</a></li></ul><h2>Talking to hardware</h2><ul><li><a href="/esp32-bluetooth">ESP32</a></li><li><a href="/hc-05-arduino">HC-05 and Arduino</a></li><li><a href="/bluetooth-thermal-printer">Thermal printers</a></li></ul><h2>Going further</h2><ul><li><a href="/pair-devices">Pair and unpair</a></li><li><a href="/desktop-bluetooth">Windows, macOS, Linux</a></li><li><a href="/troubleshooting" aria-current="page">Troubleshooting</a></li></ul></nav>
+
+  <main class="content" id="content">
+    <article>
+      <h1>Troubleshooting</h1>
+      <p class="lede">Every failure is a typed exception, so you can handle the ones you can recover from and let the rest surface.</p>
+      <h2 id="install">Install<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>flutter pub add flutter_classic_bluetooth</code></pre></div>
+<div class="codeblock"><pre><code>import 'package:flutter_classic_bluetooth/flutter_classic_bluetooth.dart';</code></pre></div>
+<h2 id="the-exceptions">The exceptions<a class="anchor" href="#the-exceptions" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><div class="tablewrap"><table>
+<thead><tr><th>Exception</th><th>Means</th></tr></thead>
+<tbody>
+<tr><td><code>BtcUnsupportedException</code></td><td>The platform has no API for this</td></tr>
+<tr><td><code>BtcPermissionException</code></td><td>The user denied a permission, or it is missing from the manifest</td></tr>
+<tr><td><code>BtcDisabledException</code></td><td>The adapter is off</td></tr>
+<tr><td><code>BtcConnectionException</code></td><td>The connection was refused or lost</td></tr>
+<tr><td><code>BtcWriteException</code></td><td>A write failed, usually because the link is gone</td></tr>
+<tr><td><code>BtcDiscoveryException</code></td><td>Discovery could not start</td></tr>
+<tr><td><code>BtcTimeoutException</code></td><td>The deadline passed first</td></tr>
+<tr><td><code>BtcAddressException</code></td><td>The MAC address is malformed</td></tr>
+<tr><td><code>BtcUuidException</code></td><td>The UUID is malformed</td></tr>
+</tbody></table></div></div>
+<p>All of them extend <code>BtcException</code>, so a single catch covers everything while you narrow the cases you can act on.</p>
+<div class="codeblock"><pre><code>try {
+  final connection = await bluetooth.connect(
+    address: device.address,
+    timeout: const Duration(seconds: 8),
+  );
+} on BtcPermissionException {
+  showSettingsPrompt();
+} on BtcDisabledException {
+  askUserToEnableBluetooth();
+} on BtcTimeoutException {
+  showRetry('Device did not respond. Is it powered on?');
+} on BtcException catch (e) {
+  report(e.message);
+}</code></pre></div>
+<h2 id="nothing-happens-when-i-scan">Nothing happens when I scan<a class="anchor" href="#nothing-happens-when-i-scan" aria-label="Link to this section">#</a></h2>
+<p>In order of how often it turns out to be the cause: the manifest is missing the permissions, the user denied the runtime prompt, the adapter is off, or you are on iOS, which has no discovery API at all. Work through it rather than guessing:</p>
+<div class="codeblock"><pre><code>final caps = await bluetooth.getPlatformCapabilities();
+print('can discover: ${caps.canDiscoverDevices}');
+print('supported:    ${await bluetooth.isSupported()}');
+print('enabled:      ${await bluetooth.isEnabled()}');</code></pre></div>
+<p>On Android 11 and below, remember that scanning needs location permission, and a device with location services switched off at the system level returns an empty scan with no error.</p>
+
+<h2 id="connect-hangs-forever">Connect hangs forever<a class="anchor" href="#connect-hangs-forever" aria-label="Link to this section">#</a></h2>
+<p>Pass a <code>timeout</code>. Without one the native call decides how long to block, and for a device that is off or out of range that can be a very long time. A native connect cannot be cancelled, so an attempt that lands after your deadline is closed and released for you rather than leaking a socket.</p>
+
+<h2 id="connects-then-drops-right-away">Connects, then drops right away<a class="anchor" href="#connects-then-drops-right-away" aria-label="Link to this section">#</a></h2>
+<p>Usually power on the device side rather than anything in software. Modules driven from a pin that cannot supply the peak current during transmit brown out the moment the radio comes up. If the device is already connected to something else, most modules accept exactly one link and refuse the second.</p>
+
+<h2 id="data-arrives-split-or-merged">Data arrives split or merged<a class="anchor" href="#data-arrives-split-or-merged" aria-label="Link to this section">#</a></h2>
+<p>Expected. RFCOMM is a byte stream, and event boundaries mean nothing. Use <code>lines</code> or <code>frames</code> rather than treating each event as a message. This is covered in full on the <a href="/send-receive-data">send and receive</a> page.</p>
+
+<h2 id="received-text-is-garbage">Received text is garbage<a class="anchor" href="#received-text-is-garbage" aria-label="Link to this section">#</a></h2>
+<p>On an HC-05 or similar module, a baud mismatch between the sketch and the module. On a thermal printer, a code page mismatch. Both produce a working connection that delivers the wrong bytes, which is why they are easy to mistake for a plugin problem.</p>
+
+<h2 id="the-last-thing-i-sent-never-arrived">The last thing I sent never arrived<a class="anchor" href="#the-last-thing-i-sent-never-arrived" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>await connection.output.writeBytes(payload);
+await connection.output.allSent;
+await connection.finish();</code></pre></div>
+<p><code>close</code> drops whatever is still queued. <code>finish</code> flushes first. Use <code>finish</code> unless you are tearing down after an error and no longer care.</p>
+
+<h2 id="it-worked-then-stopped-after-reflashing">It worked, then stopped after reflashing<a class="anchor" href="#it-worked-then-stopped-after-reflashing" aria-label="Link to this section">#</a></h2>
+<p>The bond went stale. Unpair the device in system settings and pair again. This is common with ESP32 boards, where reflashing can change what the device advertises.</p>
+
+<h2 id="works-on-android-not-on-ios">Works on Android, not on iOS<a class="anchor" href="#works-on-android-not-on-ios" aria-label="Link to this section">#</a></h2>
+<p>iOS only reaches MFi certified accessories whose protocol string is declared in <code>Info.plist</code>, and it cannot discover devices at all. A generic HC-05 or ESP32 is unreachable on iOS. This is an Apple restriction, not something a plugin can work around.</p>
+
+<h2 id="reporting-something">Reporting something<a class="anchor" href="#reporting-something" aria-label="Link to this section">#</a></h2>
+<p>If none of this fits, the <a href="https://github.com/almasumdev/flutter_classic_bluetooth/issues">issue tracker</a> is the place. Include the platform and version, the device you are talking to, the exception type and message, and the smallest snippet that reproduces it.</p>
+<nav class="next" aria-label="Related guides"><a href="/bluetooth-permissions">Permissions</a><a href="/connect-bluetooth-device">Connect</a></nav>
+      <footer class="pagefoot">
+        flutter_classic_bluetooth is open source under the MIT licence.
+        <a href="https://pub.dev/packages/flutter_classic_bluetooth">pub.dev</a> &middot;
+        <a href="https://github.com/almasumdev/flutter_classic_bluetooth">Source</a> &middot;
+        <a href="https://pub.dev/documentation/flutter_classic_bluetooth/latest/">API reference</a>
+      </footer>
+    </article>
+  </main>
+
+  <aside class="toc"><nav aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ul><li><a href="#install">Install</a></li><li><a href="#the-exceptions">The exceptions</a></li><li><a href="#nothing-happens-when-i-scan">Nothing happens when I scan</a></li><li><a href="#connect-hangs-forever">Connect hangs forever</a></li><li><a href="#connects-then-drops-right-away">Connects, then drops right away</a></li><li><a href="#data-arrives-split-or-merged">Data arrives split or merged</a></li><li><a href="#received-text-is-garbage">Received text is garbage</a></li><li><a href="#the-last-thing-i-sent-never-arrived">The last thing I sent never arrived</a></li><li><a href="#it-worked-then-stopped-after-reflashing">It worked, then stopped after reflashing</a></li><li><a href="#works-on-android-not-on-ios">Works on Android, not on iOS</a></li><li><a href="#reporting-something">Reporting something</a></li></ul></nav></aside>
+</div>
+
+<script src="/docs.029eb910a1.js" defer></script>
+</body>
+</html>

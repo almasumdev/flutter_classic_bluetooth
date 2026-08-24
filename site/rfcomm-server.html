@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How to Run an RFCOMM Bluetooth Server in Flutter</title>
+<meta name="description" content="Advertise an SDP service from a Flutter app and accept incoming Bluetooth Classic RFCOMM connections, so a phone or desktop can act as the serial device other machines connect to.">
+<link rel="canonical" href="https://flutter-classic-bluetooth.web.app/rfcomm-server">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Run an RFCOMM Bluetooth Server in Flutter">
+<meta property="og:description" content="Advertise an SDP service from a Flutter app and accept incoming Bluetooth Classic RFCOMM connections, so a phone or desktop can act as the serial device other machines connect to.">
+<meta property="og:url" content="https://flutter-classic-bluetooth.web.app/rfcomm-server">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.88cd6437e8.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Run a server", "description": "Advertise an SDP service from a Flutter app and accept incoming Bluetooth Classic RFCOMM connections, so a phone or desktop can act as the serial device other machines connect to.", "url": "https://flutter-classic-bluetooth.web.app/rfcomm-server", "author": {"@type": "Person", "name": "Nurullah Al Masum"}, "about": {"@type": "SoftwareSourceCode", "name": "flutter_classic_bluetooth", "programmingLanguage": "Dart", "codeRepository": "https://github.com/almasumdev/flutter_classic_bluetooth"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Can a Flutter app act as a Bluetooth server?", "acceptedAnswer": {"@type": "Answer", "text": "Yes on Android, Windows, macOS and Linux. Call startServer with a service name and UUID, then listen to the connections stream. iOS cannot act as an RFCOMM server."}}, {"@type": "Question", "name": "Why can no one find my Bluetooth server?", "acceptedAnswer": {"@type": "Answer", "text": "Listening does not make the adapter discoverable. Call setDiscoverable so clients that have never paired with you can find the service. Already paired clients can connect without it."}}, {"@type": "Question", "name": "Can an RFCOMM server accept more than one client?", "acceptedAnswer": {"@type": "Answer", "text": "Yes where the platform supports multiple connections. The connections stream keeps emitting, and each client is an independent connection you close yourself."}}]}</script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="topbar">
+  <button class="menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="/"><img src="/logo.svg" alt="" width="24" height="24">flutter_classic_bluetooth</a>
+  <span class="ver">v0.1.10</span>
+  <div class="grow"></div>
+  <a class="ext" href="https://pub.dev/packages/flutter_classic_bluetooth"><span>pub.dev</span></a>
+  <a class="ext" href="https://github.com/almasumdev/flutter_classic_bluetooth" aria-label="Source on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
+</header>
+
+<div class="scrim" aria-hidden="true"></div>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar" aria-label="Documentation"><h2>Start here</h2><ul><li><a href="/">Introduction</a></li><li><a href="/bluetooth-permissions">Permissions and setup</a></li><li><a href="/scan-bluetooth-devices">Scan for devices</a></li><li><a href="/connect-bluetooth-device">Connect to a device</a></li></ul><h2>Moving data</h2><ul><li><a href="/send-receive-data">Send and receive</a></li><li><a href="/rfcomm-server" aria-current="page">Run a server</a></li></ul><h2>Talking to hardware</h2><ul><li><a href="/esp32-bluetooth">ESP32</a></li><li><a href="/hc-05-arduino">HC-05 and Arduino</a></li><li><a href="/bluetooth-thermal-printer">Thermal printers</a></li></ul><h2>Going further</h2><ul><li><a href="/pair-devices">Pair and unpair</a></li><li><a href="/desktop-bluetooth">Windows, macOS, Linux</a></li><li><a href="/troubleshooting">Troubleshooting</a></li></ul></nav>
+
+  <main class="content" id="content">
+    <article>
+      <h1>Run a server</h1>
+      <p class="lede">Advertise a service, accept incoming connections, and let other devices connect to you.</p>
+      <h2 id="install">Install<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>flutter pub add flutter_classic_bluetooth</code></pre></div>
+<div class="codeblock"><pre><code>import 'package:flutter_classic_bluetooth/flutter_classic_bluetooth.dart';</code></pre></div>
+<h2 id="listening">Listening<a class="anchor" href="#listening" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>final server = await bluetooth.startServer(
+  serviceName: 'My App Serial',
+  uuid: BtcUuid.spp,
+);
+
+server.connections.listen((connection) {
+  print('client connected');
+  connection.input.lines().listen((line) =&gt; print('client said: $line'));
+});</code></pre></div>
+<p><code>serviceName</code> is what appears in the other device's SDP browse, so make it recognisable. Each incoming client arrives as a full <code>BtcConnection</code>, the same type <code>connect</code> returns, so everything on the <a href="/send-receive-data">send and receive</a> page applies unchanged.</p>
+
+<h2 id="be-discoverable">Be discoverable<a class="anchor" href="#be-discoverable" aria-label="Link to this section">#</a></h2>
+<p>Listening is not enough on its own. A client that has never paired with you cannot find you unless the adapter is discoverable.</p>
+<div class="codeblock"><pre><code>final caps = await bluetooth.getPlatformCapabilities();
+if (caps.canSetDiscoverable) {
+  await bluetooth.setDiscoverable(300);   // seconds
+}</code></pre></div>
+<p>On Android this shows a system dialog the user has to accept. Windows and Linux apply it directly, macOS and iOS have no API for it. Already paired clients can connect without this.</p>
+
+<h2 id="your-own-service-uuid">Your own service UUID<a class="anchor" href="#your-own-service-uuid" aria-label="Link to this section">#</a></h2>
+<p>Use SPP when you want generic serial terminals to be able to connect. Use a UUID of your own when the two ends are both your software and you would rather not have unrelated apps attach.</p>
+<div class="codeblock"><pre><code>final server = await bluetooth.startServer(
+  serviceName: 'Fleet Sync',
+  uuid: '7f2c9e40-1b3a-4d6e-9f10-2c8b5a7d3e91',
+);</code></pre></div>
+<p>Both ends must agree. The client passes the same string to <code>connect</code>.</p>
+
+<h2 id="several-clients">Several clients<a class="anchor" href="#several-clients" aria-label="Link to this section">#</a></h2>
+<p>The connections stream keeps emitting, so a server can hold more than one client where the platform supports it. Track them yourself, since closing the server socket does not close connections it already handed you.</p>
+<div class="codeblock"><pre><code>final clients = &lt;BtcConnection&gt;[];
+
+server.connections.listen((connection) {
+  clients.add(connection);
+  connection.stateStream.listen((s) {
+    if (s == BtcConnectionState.disconnected) clients.remove(connection);
+  });
+});
+
+Future&lt;void&gt; broadcast(String line) async {
+  for (final c in clients) {
+    await c.output.writeLine(line);
+  }
+}</code></pre></div>
+<h2 id="shutting-down">Shutting down<a class="anchor" href="#shutting-down" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>for (final c in clients) {
+  await c.finish();
+}
+await server.close();</code></pre></div>
+<p>Close the connections first, then the listening socket. The other order leaves clients hanging until they notice the link went quiet.</p>
+
+<h2 id="where-it-works">Where it works<a class="anchor" href="#where-it-works" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><div class="tablewrap"><table>
+<thead><tr><th>Platform</th><th>Server mode</th></tr></thead>
+<tbody>
+<tr><td>Android</td><td>Yes</td></tr>
+<tr><td>Windows</td><td>Yes</td></tr>
+<tr><td>macOS</td><td>Yes</td></tr>
+<tr><td>Linux</td><td>Yes</td></tr>
+<tr><td>iOS</td><td>No</td></tr>
+</tbody></table></div></div>
+<p>iOS cannot act as an RFCOMM server. <code>startServer</code> throws <code>BtcUnsupportedException</code>, so gate the feature on <code>caps.canCreateServer</code> rather than on the platform name.</p>
+<nav class="next" aria-label="Related guides"><a href="/send-receive-data">Send and receive</a><a href="/desktop-bluetooth">Desktop platforms</a></nav>
+      <footer class="pagefoot">
+        flutter_classic_bluetooth is open source under the MIT licence.
+        <a href="https://pub.dev/packages/flutter_classic_bluetooth">pub.dev</a> &middot;
+        <a href="https://github.com/almasumdev/flutter_classic_bluetooth">Source</a> &middot;
+        <a href="https://pub.dev/documentation/flutter_classic_bluetooth/latest/">API reference</a>
+      </footer>
+    </article>
+  </main>
+
+  <aside class="toc"><nav aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ul><li><a href="#install">Install</a></li><li><a href="#listening">Listening</a></li><li><a href="#be-discoverable">Be discoverable</a></li><li><a href="#your-own-service-uuid">Your own service UUID</a></li><li><a href="#several-clients">Several clients</a></li><li><a href="#shutting-down">Shutting down</a></li><li><a href="#where-it-works">Where it works</a></li></ul></nav></aside>
+</div>
+
+<script src="/docs.029eb910a1.js" defer></script>
+</body>
+</html>

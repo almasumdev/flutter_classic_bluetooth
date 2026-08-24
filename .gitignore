@@ -49,3 +49,6 @@ example/integration_test/esp32_live_test.dart
 
 # Internal implementation plan (local only, not published).
 /doc/plan.md
+
+# Firebase Hosting deploy cache.
+.firebase/

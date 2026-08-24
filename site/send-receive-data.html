@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Send and Receive Data over Bluetooth Serial in Flutter</title>
+<meta name="description" content="Read and write bytes on a Bluetooth Classic RFCOMM connection in Flutter, split the input stream into lines or framed packets, and send a command and await its reply.">
+<link rel="canonical" href="https://flutter-classic-bluetooth.web.app/send-receive-data">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Send and Receive Data over Bluetooth Serial in Flutter">
+<meta property="og:description" content="Read and write bytes on a Bluetooth Classic RFCOMM connection in Flutter, split the input stream into lines or framed packets, and send a command and await its reply.">
+<meta property="og:url" content="https://flutter-classic-bluetooth.web.app/send-receive-data">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.88cd6437e8.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Send and receive", "description": "Read and write bytes on a Bluetooth Classic RFCOMM connection in Flutter, split the input stream into lines or framed packets, and send a command and await its reply.", "url": "https://flutter-classic-bluetooth.web.app/send-receive-data", "author": {"@type": "Person", "name": "Nurullah Al Masum"}, "about": {"@type": "SoftwareSourceCode", "name": "flutter_classic_bluetooth", "programmingLanguage": "Dart", "codeRepository": "https://github.com/almasumdev/flutter_classic_bluetooth"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Why does my Bluetooth data arrive split into pieces in Flutter?", "acceptedAnswer": {"@type": "Answer", "text": "RFCOMM is a byte stream, not a message service. One write on the device can arrive as several stream events, or several writes can arrive merged. Split the input with lines or frames rather than treating each event as a message."}}, {"@type": "Question", "name": "How do I read line by line from a Bluetooth serial device?", "acceptedAnswer": {"@type": "Answer", "text": "Call lines on the connection input stream. It buffers across events and emits one string per line, handling both LF and CRLF."}}, {"@type": "Question", "name": "How do I send an AT command and wait for the response?", "acceptedAnswer": {"@type": "Answer", "text": "Use sendAndReceive. It subscribes before writing so a fast reply is not missed, and takes an optional where predicate to skip echoed lines."}}]}</script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+
+<header class="topbar">
+  <button class="menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="/"><img src="/logo.svg" alt="" width="24" height="24">flutter_classic_bluetooth</a>
+  <span class="ver">v0.1.10</span>
+  <div class="grow"></div>
+  <a class="ext" href="https://pub.dev/packages/flutter_classic_bluetooth"><span>pub.dev</span></a>
+  <a class="ext" href="https://github.com/almasumdev/flutter_classic_bluetooth" aria-label="Source on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
+</header>
+
+<div class="scrim" aria-hidden="true"></div>
+
+<div class="shell">
+  <nav class="sidebar" id="sidebar" aria-label="Documentation"><h2>Start here</h2><ul><li><a href="/">Introduction</a></li><li><a href="/bluetooth-permissions">Permissions and setup</a></li><li><a href="/scan-bluetooth-devices">Scan for devices</a></li><li><a href="/connect-bluetooth-device">Connect to a device</a></li></ul><h2>Moving data</h2><ul><li><a href="/send-receive-data" aria-current="page">Send and receive</a></li><li><a href="/rfcomm-server">Run a server</a></li></ul><h2>Talking to hardware</h2><ul><li><a href="/esp32-bluetooth">ESP32</a></li><li><a href="/hc-05-arduino">HC-05 and Arduino</a></li><li><a href="/bluetooth-thermal-printer">Thermal printers</a></li></ul><h2>Going further</h2><ul><li><a href="/pair-devices">Pair and unpair</a></li><li><a href="/desktop-bluetooth">Windows, macOS, Linux</a></li><li><a href="/troubleshooting">Troubleshooting</a></li></ul></nav>
+
+  <main class="content" id="content">
+    <article>
+      <h1>Send and receive</h1>
+      <p class="lede">A connection is a byte stream in and an ordered sink out. The work is turning bytes into messages.</p>
+      <h2 id="install">Install<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>flutter pub add flutter_classic_bluetooth</code></pre></div>
+<div class="codeblock"><pre><code>import 'package:flutter_classic_bluetooth/flutter_classic_bluetooth.dart';</code></pre></div>
+<h2 id="writing">Writing<a class="anchor" href="#writing" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>await connection.output.writeString('AT');
+await connection.output.writeLine('AT+GMR');
+await connection.output.writeBytes([0x01, 0x02, 0x03]);
+await connection.output.add(Uint8List.fromList([0xFF]));</code></pre></div>
+<p>Writes are queued and delivered in call order, so you do not have to await each one to keep them in sequence. When you do need to know everything has gone out:</p>
+<div class="codeblock"><pre><code>connection.output.writeString('one');
+connection.output.writeString('two');
+await connection.output.allSent;</code></pre></div>
+<h2 id="reading-raw-bytes">Reading raw bytes<a class="anchor" href="#reading-raw-bytes" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>connection.input.listen(
+  (bytes) =&gt; print('RX ${bytes.length}'),
+  onDone: () =&gt; print('device disconnected'),
+  onError: (e) =&gt; print('link error: $e'),
+);</code></pre></div>
+<p><code>onDone</code> firing is how you learn the other end went away.</p>
+
+<h2 id="bytes-are-not-messages">Bytes are not messages<a class="anchor" href="#bytes-are-not-messages" aria-label="Link to this section">#</a></h2>
+<p>This is the mistake that costs the most time. RFCOMM is a stream, not a datagram service. One <code>write</code> on the device does not produce one event in Dart. A 40 byte reply can arrive as 40 separate events, or two writes can arrive merged into one. Any code shaped like <code>if (utf8.decode(bytes) == 'OK')</code> works on your desk and fails in the field.</p>
+<p>Split the stream on whatever the protocol actually delimits with.</p>
+
+<h2 id="line-based-protocols">Line based protocols<a class="anchor" href="#line-based-protocols" aria-label="Link to this section">#</a></h2>
+<div class="codeblock"><pre><code>connection.input.lines().listen((line) {
+  print('device said: $line');
+});</code></pre></div>
+<p><code>lines</code> buffers across events and emits one string per line, handling both <code>\n</code> and <code>\r\n</code>. Pass <code>maxLineLength</code> to cap the buffer so a device stuck without a delimiter cannot grow it without bound.</p>
+<div class="codeblock"><pre><code>connection.input.lines(maxLineLength: 4096).listen(handleLine);</code></pre></div>
+<h2 id="binary-frames">Binary frames<a class="anchor" href="#binary-frames" aria-label="Link to this section">#</a></h2>
+<p>For a protocol delimited by a byte sequence rather than a newline:</p>
+<div class="codeblock"><pre><code>connection.input
+    .frames(delimiter: Uint8List.fromList([0x0D, 0x0A]))
+    .listen((frame) =&gt; decode(frame));</code></pre></div>
+<h2 id="command-and-response">Command and response<a class="anchor" href="#command-and-response" aria-label="Link to this section">#</a></h2>
+<p>Write a command, wait for the reply, in one call. This is the common shape for AT command devices.</p>
+<div class="codeblock"><pre><code>final version = await connection.sendAndReceive('AT+GMR');
+
+final ok = await connection.sendAndReceive(
+  'AT',
+  where: (line) =&gt; line == 'OK',
+  timeout: const Duration(seconds: 3),
+);</code></pre></div>
+<p>It subscribes before writing, so a device that answers immediately is never missed. <code>where</code> skips lines you do not care about, which matters on devices that echo the command back before replying. No matching line inside the timeout throws <code>BtcTimeoutException</code>.</p>
+<p>One caveat: this is a single outstanding request at a time. Do not fire several in parallel on one connection and expect the answers to pair up.</p>
+
+<h2 id="text-encodings">Text encodings<a class="anchor" href="#text-encodings" aria-label="Link to this section">#</a></h2>
+<p>Everything defaults to UTF-8. Devices that speak Latin-1 or a code page need it stated.</p>
+<div class="codeblock"><pre><code>await connection.output.writeString('café', encoding: latin1);
+connection.input.lines(encoding: latin1).listen(handleLine);</code></pre></div>
+<h2 id="decoding-without-splitting">Decoding without splitting<a class="anchor" href="#decoding-without-splitting" aria-label="Link to this section">#</a></h2>
+<p>When a device streams text with no framing at all and you just want it on screen:</p>
+<div class="codeblock"><pre><code>connection.input.decoded().listen((chunk) =&gt; append(chunk));</code></pre></div>
+<p>Chunk boundaries do not fall on character boundaries, so this decodes across events rather than per event, which keeps multi-byte characters intact.</p>
+<nav class="next" aria-label="Related guides"><a href="/connect-bluetooth-device">Connect</a><a href="/esp32-bluetooth">ESP32</a></nav>
+      <footer class="pagefoot">
+        flutter_classic_bluetooth is open source under the MIT licence.
+        <a href="https://pub.dev/packages/flutter_classic_bluetooth">pub.dev</a> &middot;
+        <a href="https://github.com/almasumdev/flutter_classic_bluetooth">Source</a> &middot;
+        <a href="https://pub.dev/documentation/flutter_classic_bluetooth/latest/">API reference</a>
+      </footer>
+    </article>
+  </main>
+
+  <aside class="toc"><nav aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ul><li><a href="#install">Install</a></li><li><a href="#writing">Writing</a></li><li><a href="#reading-raw-bytes">Reading raw bytes</a></li><li><a href="#bytes-are-not-messages">Bytes are not messages</a></li><li><a href="#line-based-protocols">Line based protocols</a></li><li><a href="#binary-frames">Binary frames</a></li><li><a href="#command-and-response">Command and response</a></li><li><a href="#text-encodings">Text encodings</a></li><li><a href="#decoding-without-splitting">Decoding without splitting</a></li></ul></nav></aside>
+</div>
+
+<script src="/docs.029eb910a1.js" defer></script>
+</body>
+</html>

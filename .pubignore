@@ -32,3 +32,8 @@ example/integration_test/esp32_live_test.dart
 
 # Internal implementation plan (never ship).
 doc/plan.md
+
+# Documentation website: source and generated output live in the repo, not the
+# published archive.
+site/
+tool/

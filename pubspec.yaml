@@ -1,10 +1,10 @@
 name: flutter_classic_bluetooth
 description: "Bluetooth Classic (RFCOMM/SPP) serial plugin for Flutter. Discover, pair and connect to ESP32, Arduino, HC-05 and thermal printers on Android, Windows, macOS, Linux, iOS."
-version: 0.1.9
+version: 0.1.10
 homepage: https://github.com/almasumdev/flutter_classic_bluetooth
 repository: https://github.com/almasumdev/flutter_classic_bluetooth
 issue_tracker: https://github.com/almasumdev/flutter_classic_bluetooth/issues
-documentation: https://pub.dev/documentation/flutter_classic_bluetooth/latest/
+documentation: https://flutter-classic-bluetooth.web.app
 
 topics:
   - bluetooth
