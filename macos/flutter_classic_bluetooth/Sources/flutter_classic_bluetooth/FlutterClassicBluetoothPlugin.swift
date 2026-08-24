@@ -87,8 +87,14 @@ public class FlutterClassicBluetoothPlugin: NSObject, FlutterPlugin {
         case "checkPermissions", "requestPermissions":
             result("notRequired")
 
-        case "openAppSettings":
+        case "openAppSettings", "openLocationSettings":
             result(false)
+
+        case "isLocationServiceRequired":
+            result(false)
+
+        case "isLocationServiceEnabled":
+            result(true)
 
         case "isSupported":
             result(IOBluetoothHostController.default() != nil)

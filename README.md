@@ -71,6 +71,7 @@ through broadcast streams.
 - [Getting started](#getting-started)
   - [Initialize and check support](#initialize-and-check-support)
   - [Request permissions](#request-permissions)
+  - [The Android location trap](#the-android-location-trap)
   - [Discover nearby devices](#discover-nearby-devices)
   - [List paired devices](#list-paired-devices)
   - [Connect to a device](#connect-to-a-device)
@@ -110,7 +111,7 @@ Dart API. Expand a group for details:
 <details>
 <summary><b>🔍 Discovery & pairing</b></summary>
 
-- **Permission API**: check, request, and open app settings, with no extra package
+- **Permission API**: check and request per operation, detect a permanent denial, and catch the Android location-toggle trap, with no extra package
 - Device **discovery** with results and start/stop state streams, plus a one-shot `scan()`
 - **Paired/bonded** device listing
 - **Bond / unbond** devices and observe bond-state changes
@@ -194,7 +195,7 @@ list; [contributions](#support-and-feedback) welcome.
 - ✅ **Five platforms**: Android, Windows, macOS, Linux, iOS (MFi)
 - ✅ Linux via **BlueZ D-Bus**: discovery, adapter and pairing work without root
 - ✅ **Connection RSSI** on macOS: read the live link signal strength with `connection.readRssi()`
-- ✅ **Permission API**: `checkPermissions()`, `requestPermissions()` and `openAppSettings()`, with permanent-denial detection on Android and iOS
+- ✅ **Permission API**: per-operation `checkPermissions()` / `requestPermissions()`, permanent-denial detection, and location-toggle detection for Android 11 and below
 
 **Planned**
 
@@ -299,9 +300,23 @@ if (caps.canDiscoverDevices) {
 
 ### Request permissions
 
-Ask when the user expects it, rather than letting the first scan raise the
-system dialog out of nowhere. Every call that needs a permission still requests
-it implicitly, so this is a chance to ask early, not an extra step:
+Ask for what the app actually uses. Android 12 split one Bluetooth permission
+into three, so an app that only talks to a device the user already paired does
+not have to ask for permission to scan:
+
+```dart
+// A printer app that works from the paired list.
+final status = await bluetooth.checkPermissions(
+  permissions: {BtcPermission.connect},
+);
+```
+
+The default is `{BtcPermission.scan, BtcPermission.connect}`, which is what a
+discover-then-connect app needs.
+
+Every call still requests what it needs on its own, so the plugin works with no
+permission code at all. Asking yourself just means you get to explain first,
+instead of the system dialog appearing out of nowhere at the first scan:
 
 ```dart
 switch (await bluetooth.checkPermissions()) {
@@ -310,24 +325,48 @@ switch (await bluetooth.checkPermissions()) {
     startScanning();
 
   case BtcPermissionStatus.denied:
-    // The system will still prompt. Explain why first, then ask.
+    // The system will still prompt. Show a reason, then ask.
     if (await bluetooth.requestPermissions() == BtcPermissionStatus.granted) {
       startScanning();
     }
 
   case BtcPermissionStatus.permanentlyDenied:
-    // The system has stopped asking; only settings can change it.
+    // The system has stopped asking. Only settings can change it.
     await bluetooth.openAppSettings();
 }
 ```
 
-`notRequired` is what Windows, macOS and Linux report: they grant Bluetooth
-access at build time through a manifest entry, an entitlement, or the system's
-D-Bus policy, so there is nothing to request. Treat it exactly like `granted`.
+What each value maps to per platform:
 
-`openAppSettings` backgrounds the app, and the user may come back without
-having changed anything, so re-check with `checkPermissions` on resume rather
-than assuming the trip worked.
+| | Android 12+ (API 31+) | Android 7 to 11 (API 24 to 30) | iOS | Windows, macOS, Linux |
+|---|---|---|---|---|
+| `scan` | `BLUETOOTH_SCAN` | fine location on API 29+, coarse below, **plus the location toggle** | one Bluetooth grant | `notRequired` |
+| `connect` | `BLUETOOTH_CONNECT` | nothing at runtime | one Bluetooth grant | `notRequired` |
+| `advertise` | `BLUETOOTH_ADVERTISE` | nothing at runtime | one Bluetooth grant | `notRequired` |
+
+`notRequired` means the platform decided access at build time, through a
+manifest entry, an entitlement or the system's D-Bus policy. Treat it exactly
+like `granted`.
+
+### The Android location trap
+
+On Android 11 and below, discovery needs the **system location toggle switched
+on**, not just the permission granted. With the permission held and the toggle
+off, `startDiscovery` succeeds, reports no error, and never finds anything.
+That is the least obvious way Bluetooth fails on Android, so it is worth
+checking for by name:
+
+```dart
+if (await bluetooth.isLocationServiceRequired() &&
+    !await bluetooth.isLocationServiceEnabled()) {
+  // Explain, then offer the settings screen. There is no in-app prompt for
+  // this; it is a system-wide setting.
+  await bluetooth.openLocationSettings();
+}
+```
+
+Both report harmless values everywhere the trap does not exist, so the check
+above reads correctly on all five platforms.
 
 ### Discover nearby devices
 

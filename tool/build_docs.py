@@ -340,7 +340,7 @@ sudo apt-get install -y libgtk-3-dev libbluetooth-dev ninja-build cmake pkg-conf
 <p>Nothing to declare. The plugin uses Winsock2 <code>AF_BTH</code> sockets, which need no manifest entry or capability.</p>
 
 <h2>Asking at a moment that makes sense</h2>
-<p>Every call that needs a permission requests it implicitly, so the plugin works with no permission code at all. The cost is that the first scan raises a system dialog out of nowhere, with no explanation of why the app wants it, which is the version users refuse.</p>
+<p>Every call that needs a permission requests it on its own, so the plugin works with no permission code at all. The cost is that the first scan raises a system dialog out of nowhere, with no explanation of why the app wants it, which is the version users refuse.</p>
 <p>Ask on your own terms instead.</p>
 """ + pre("""
 switch (await bluetooth.checkPermissions()) {
@@ -361,11 +361,42 @@ switch (await bluetooth.checkPermissions()) {
 """) + """
 <p><code>checkPermissions</code> never prompts, so it is safe to call while building a screen.</p>
 
+<h2>Ask only for what you use</h2>
+<p>Android 12 replaced one Bluetooth permission with three, each covering different calls. An app that talks to a device the user already paired does not need permission to scan, and asking for it means a broader prompt than the app has earned.</p>
+""" + pre("""
+// A printer app that works from the paired list.
+await bluetooth.checkPermissions(permissions: {BtcPermission.connect});
+
+// A scanner that never connects.
+await bluetooth.requestPermissions(permissions: {BtcPermission.scan});
+""") + """
+<p>The default is <code>{BtcPermission.scan, BtcPermission.connect}</code>, which is what a discover-then-connect app needs.</p>
+<div class="tablewrap"><table>
+<thead><tr><th></th><th>Android 12+</th><th>Android 7 to 11</th><th>iOS</th><th>Windows, macOS, Linux</th></tr></thead>
+<tbody>
+<tr><td><code>scan</code></td><td><code>BLUETOOTH_SCAN</code></td><td>location permission, plus the toggle</td><td>one Bluetooth grant</td><td><code>notRequired</code></td></tr>
+<tr><td><code>connect</code></td><td><code>BLUETOOTH_CONNECT</code></td><td>nothing at runtime</td><td>one Bluetooth grant</td><td><code>notRequired</code></td></tr>
+<tr><td><code>advertise</code></td><td><code>BLUETOOTH_ADVERTISE</code></td><td>nothing at runtime</td><td>one Bluetooth grant</td><td><code>notRequired</code></td></tr>
+</tbody></table></div>
+<p>Below Android 12 only scanning was ever gated, and it was gated by location rather than by Bluetooth. Connecting and advertising were granted at install time, so on those versions asking for them is a no-op that correctly reports <code>granted</code>.</p>
+
+<h2>The location toggle, and why a scan finds nothing</h2>
+<p>This is the least obvious way Bluetooth fails on Android. On Android 11 and below, discovery needs the <strong>system location toggle switched on</strong>, over and above the permission. With the permission granted and the toggle off, <code>startDiscovery</code> succeeds, reports no error, and simply never finds a device.</p>
+<p>There is no in-app prompt for it, because it is a system-wide setting rather than an app permission. All you can do is detect it and point the user at the screen.</p>
+""" + pre("""
+if (await bluetooth.isLocationServiceRequired() &&
+    !await bluetooth.isLocationServiceEnabled()) {
+  // Explain first, then offer the settings screen.
+  await bluetooth.openLocationSettings();
+}
+""") + """
+<p><code>isLocationServiceRequired</code> is false on Android 12 and above and on every other platform, and <code>isLocationServiceEnabled</code> reports true wherever the setting does not apply, so that check reads correctly everywhere without a platform test.</p>
+
 <h2>The four statuses</h2>
 <div class="tablewrap"><table>
 <thead><tr><th>Status</th><th>Meaning</th><th>What to do</th></tr></thead>
 <tbody>
-<tr><td><code>granted</code></td><td>Everything required is held</td><td>Carry on</td></tr>
+<tr><td><code>granted</code></td><td>Everything asked for is held</td><td>Carry on</td></tr>
 <tr><td><code>denied</code></td><td>Not held, but the system will still prompt</td><td>Show a reason, then request</td></tr>
 <tr><td><code>permanentlyDenied</code></td><td>The system has stopped prompting</td><td>Offer <code>openAppSettings</code></td></tr>
 <tr><td><code>notRequired</code></td><td>No runtime permission exists here</td><td>Treat as granted</td></tr>

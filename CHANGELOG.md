@@ -1,37 +1,63 @@
 ## 1.0.0
 
-First stable release. The API is now settled, and anything breaking waits for
-2.0.0.
+First stable release. The API is settled, and anything breaking waits for 2.0.0.
 
 ### New
 
 - **Permission API.** `checkPermissions()` reports the current status without
   prompting, `requestPermissions()` asks for what the platform requires, and
-  `openAppSettings()` opens this app's settings page. The new
-  `BtcPermissionStatus` enum has four values: `granted`, `denied`,
-  `permanentlyDenied`, and `notRequired`.
-- Permissions were previously requested implicitly, as a side effect of calling
-  something that needed one. That still happens, so no existing code has to
-  change. What was missing was any way to ask on your own terms: to show a
-  reason before the system dialog, to ask during onboarding rather than at the
-  first scan, or to tell a recoverable refusal from a permanent one.
-- `permanentlyDenied` is detected properly rather than guessed. On Android,
-  `shouldShowRequestPermissionRationale` reads the same before the first prompt
-  as it does after a permanent refusal, so the plugin records that it has asked
-  and uses that to tell the two apart. On iOS the answer comes from
-  `CBManager.authorization`, where any refusal is permanent.
-- Windows, macOS and Linux report `notRequired`: they grant Bluetooth access at
-  build time through a manifest entry, an entitlement or the system's D-Bus
-  policy, so there is nothing to ask for. Branching on the status rather than on
-  the platform name gives one code path for all five.
+  `openAppSettings()` opens this app's settings page. `BtcPermissionStatus` has
+  four values: `granted`, `denied`, `permanentlyDenied`, and `notRequired`.
+- **Per-operation permissions.** Both calls take a `permissions` set of
+  `BtcPermission.scan`, `.connect` and `.advertise`, defaulting to scan plus
+  connect. Android 12 split one Bluetooth permission into three, so an app that
+  only talks to a device the user already paired can now ask for `connect`
+  alone instead of a prompt covering scanning it never does.
+- Internally, every method now asks for only the permission it needs.
+  `startDiscovery` asks for scan, `connect` and `getPairedDevices` and the
+  server ask for connect, and `setDiscoverable` asks for advertise. Before
+  this, any of them demanded scan and connect together.
+- **The Android location trap.** `isLocationServiceRequired()`,
+  `isLocationServiceEnabled()` and `openLocationSettings()`. On Android 11 and
+  below, discovery needs the system location toggle switched on as well as the
+  permission. With the permission held and the toggle off, `startDiscovery`
+  succeeds, reports no error, and never finds a device. There was previously no
+  way to tell that apart from a genuinely empty room.
+- Permissions were already requested implicitly, and still are, so no existing
+  code has to change. What was missing was any way to ask on your own terms: to
+  show a reason before the system dialog, to ask during onboarding rather than
+  at the first scan, or to tell a recoverable refusal from a permanent one.
+
+### Per-platform behaviour
+
+- **Android 12 and above:** one grant per permission, reported together.
+- **Android 7 to 11:** only scanning is gated, and by location rather than
+  Bluetooth. Fine location from API 29, coarse below that. Connecting and
+  advertising were granted at install time, so asking for them correctly
+  reports `granted`.
+- **iOS:** one Bluetooth grant covers all three scopes, read from
+  `CBManager.authorization`. It governs CoreBluetooth, which this plugin uses
+  only for adapter state, so a refusal shows up as
+  `BtcAdapterState.unauthorized` while reaching an MFi accessory still works;
+  that path is gated by the declared protocol strings instead.
+- **Windows, macOS and Linux:** `notRequired`. Access is decided at build time
+  by a manifest entry, an entitlement or the system's D-Bus policy.
+
+`permanentlyDenied` is detected rather than guessed. Android's
+`shouldShowRequestPermissionRationale` reads the same before the first prompt as
+after a permanent refusal, so the plugin records per permission that it has
+asked and uses that to tell the two apart.
 
 ### Changed
 
-- `FlutterClassicBluetoothPlatform` gained three methods. They have default
-  implementations, so a platform class that `extends` it keeps working. A class
-  that `implements` it must add them; `plugin_platform_interface` asks
+- `FlutterClassicBluetoothPlatform` gained six methods. They have default
+  implementations, so a platform class that extends it keeps working. A class
+  that implements it must add them; `plugin_platform_interface` asks
   implementers to extend for exactly this reason.
-- The documentation site gained a permissions guide at
+- CI now compiles the native code on all five platforms before a release is
+  tagged. The Dart checks never touched it, so a Kotlin, Swift or C error could
+  previously have reached pub.dev unbuilt.
+- New documentation guide at
   https://flutter-classic-bluetooth.web.app/bluetooth-permissions.
 
 ## 0.1.10

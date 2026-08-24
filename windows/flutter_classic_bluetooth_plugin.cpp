@@ -226,8 +226,11 @@ void FlutterClassicBluetoothPlugin::HandleMethodCall(
   // prompt, so there is no permission for the caller to hold or request.
   if (method == "checkPermissions" || method == "requestPermissions") {
     result->Success(EncodableValue("notRequired"));
-  } else if (method == "openAppSettings") {
+  } else if (method == "openAppSettings" || method == "openLocationSettings" ||
+             method == "isLocationServiceRequired") {
     result->Success(EncodableValue(false));
+  } else if (method == "isLocationServiceEnabled") {
+    result->Success(EncodableValue(true));
   } else if (method == "isSupported") {
     HandleIsSupported(std::move(result));
   } else if (method == "isEnabled") {

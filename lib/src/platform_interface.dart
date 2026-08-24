@@ -40,19 +40,38 @@ abstract class FlutterClassicBluetoothPlatform extends PlatformInterface {
 
   // ── Permissions ───────────────────────────────────────────────────────
 
-  /// Returns the current Bluetooth permission status without prompting.
-  Future<BtcPermissionStatus> checkPermissions() {
+  /// Returns the status of [permissions] without prompting.
+  Future<BtcPermissionStatus> checkPermissions(Set<BtcPermission> permissions) {
     throw UnimplementedError('checkPermissions() has not been implemented.');
   }
 
-  /// Requests the Bluetooth permissions the platform requires.
-  Future<BtcPermissionStatus> requestPermissions() {
+  /// Requests [permissions] and returns the status afterwards.
+  Future<BtcPermissionStatus> requestPermissions(
+      Set<BtcPermission> permissions) {
     throw UnimplementedError('requestPermissions() has not been implemented.');
   }
 
   /// Opens this app's system settings page.
   Future<bool> openAppSettings() {
     throw UnimplementedError('openAppSettings() has not been implemented.');
+  }
+
+  /// Whether scanning on this platform also needs the system location toggle.
+  Future<bool> isLocationServiceRequired() {
+    throw UnimplementedError(
+        'isLocationServiceRequired() has not been implemented.');
+  }
+
+  /// Whether the system location toggle is currently on.
+  Future<bool> isLocationServiceEnabled() {
+    throw UnimplementedError(
+        'isLocationServiceEnabled() has not been implemented.');
+  }
+
+  /// Opens the system location settings screen.
+  Future<bool> openLocationSettings() {
+    throw UnimplementedError(
+        'openLocationSettings() has not been implemented.');
   }
 
   // ── Adapter ──────────────────────────────────────────────────────────

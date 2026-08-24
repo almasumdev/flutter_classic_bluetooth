@@ -65,45 +65,46 @@ class FlutterClassicBluetooth {
 
   // ── Permissions ──────────────────────────────────────────────────────
 
-  /// Returns the current Bluetooth permission status, without prompting.
+  /// The permissions a plain client app needs: scanning for a device and
+  /// connecting to it.
+  static const _defaultScopes = {BtcPermission.scan, BtcPermission.connect};
+
+  /// Returns the status of [permissions], without prompting.
   ///
-  /// Use it to decide what to show before asking: skip an onboarding screen
-  /// when the answer is already [BtcPermissionStatus.granted], explain why the
-  /// permission is needed when it is [BtcPermissionStatus.denied], or point at
-  /// system settings when it is [BtcPermissionStatus.permanentlyDenied].
+  /// Ask only for what the app uses. An app that connects to a device the user
+  /// already paired needs `{BtcPermission.connect}` and should not be asking
+  /// for permission to scan; on Android 12 and above those are separate
+  /// grants, and asking for both means a broader prompt than the app has
+  /// earned. Defaults to scan plus connect, which is what a discover-then-
+  /// connect app needs.
   ///
   /// ```dart
-  /// switch (await bluetooth.checkPermissions()) {
-  ///   case BtcPermissionStatus.granted:
-  ///   case BtcPermissionStatus.notRequired:
-  ///     startScanning();
-  ///   case BtcPermissionStatus.denied:
-  ///     showRationaleThenRequest();
-  ///   case BtcPermissionStatus.permanentlyDenied:
-  ///     showOpenSettingsButton();
-  /// }
+  /// // A printer app that only uses the paired list.
+  /// final status = await bluetooth.checkPermissions(
+  ///   permissions: {BtcPermission.connect},
+  /// );
   /// ```
   ///
-  /// | Platform | Supported |
+  /// | Platform | Behaviour |
   /// |----------|-----------|
-  /// | Android | Yes |
-  /// | iOS | Yes |
-  /// | Windows | [BtcPermissionStatus.notRequired] |
-  /// | macOS | [BtcPermissionStatus.notRequired] |
-  /// | Linux | [BtcPermissionStatus.notRequired] |
+  /// | Android 12+ | One grant per permission, reported together |
+  /// | Android 11 and below | Only [BtcPermission.scan] is gated, by location |
+  /// | iOS | One Bluetooth grant covers all three |
+  /// | Windows, macOS, Linux | [BtcPermissionStatus.notRequired] |
   ///
-  /// Never throws [BtcPermissionException]; asking about a permission is
-  /// always allowed.
-  Future<BtcPermissionStatus> checkPermissions() =>
-      _platform.checkPermissions();
+  /// Never prompts and never throws, so it is safe to call while building a
+  /// screen.
+  Future<BtcPermissionStatus> checkPermissions({
+    Set<BtcPermission> permissions = _defaultScopes,
+  }) =>
+      _platform.checkPermissions(permissions);
 
-  /// Requests the Bluetooth permissions this platform requires, and returns
-  /// the status afterwards.
+  /// Requests [permissions] and returns the status afterwards.
   ///
   /// Prefer calling this at a moment the user understands, rather than letting
   /// the first [scan] or [connect] raise the dialog out of nowhere. Every
-  /// method that needs a permission still requests it implicitly, so this is an
-  /// opportunity to ask early, not an extra step you have to take.
+  /// method that needs a permission still requests the ones it needs
+  /// implicitly, so this is an opportunity to ask early, not an extra step.
   ///
   /// Returns [BtcPermissionStatus.granted] immediately if the permissions are
   /// already held, and [BtcPermissionStatus.permanentlyDenied] without showing
@@ -117,37 +118,58 @@ class FlutterClassicBluetooth {
   ///   await bluetooth.openAppSettings();
   /// }
   /// ```
-  ///
-  /// | Platform | Supported |
-  /// |----------|-----------|
-  /// | Android | Yes |
-  /// | iOS | Yes |
-  /// | Windows | [BtcPermissionStatus.notRequired] |
-  /// | macOS | [BtcPermissionStatus.notRequired] |
-  /// | Linux | [BtcPermissionStatus.notRequired] |
-  Future<BtcPermissionStatus> requestPermissions() =>
-      _platform.requestPermissions();
+  Future<BtcPermissionStatus> requestPermissions({
+    Set<BtcPermission> permissions = _defaultScopes,
+  }) =>
+      _platform.requestPermissions(permissions);
 
   /// Opens this app's page in the system settings, so the user can grant a
   /// permission the system will no longer prompt for.
   ///
   /// The only way out of [BtcPermissionStatus.permanentlyDenied]. Returns
-  /// `true` if the settings page was opened. Returns `false` where there is no
-  /// runtime permission to change, which is every platform reporting
-  /// [BtcPermissionStatus.notRequired].
+  /// `true` if the settings page was opened, and `false` where there is no
+  /// runtime permission to change.
   ///
   /// The app is backgrounded when this succeeds, and the user may return
   /// without having changed anything, so re-check with [checkPermissions] on
   /// resume rather than assuming the trip worked.
-  ///
-  /// | Platform | Supported |
-  /// |----------|-----------|
-  /// | Android | Yes |
-  /// | iOS | Yes |
-  /// | Windows | No (returns `false`) |
-  /// | macOS | No (returns `false`) |
-  /// | Linux | No (returns `false`) |
   Future<bool> openAppSettings() => _platform.openAppSettings();
+
+  /// Whether scanning on this device also needs the system location toggle
+  /// switched on, over and above the permission.
+  ///
+  /// True on Android 11 and below, where discovery is implemented as a
+  /// location-sensitive operation. False on Android 12 and above, and on every
+  /// other platform.
+  ///
+  /// This catches the most confusing failure in Bluetooth on Android: with the
+  /// permission granted but the toggle off, [startDiscovery] succeeds,
+  /// reports no error, and simply never finds anything.
+  ///
+  /// ```dart
+  /// if (await bluetooth.isLocationServiceRequired() &&
+  ///     !await bluetooth.isLocationServiceEnabled()) {
+  ///   // Explain, then offer to open the settings screen.
+  ///   await bluetooth.openLocationSettings();
+  /// }
+  /// ```
+  Future<bool> isLocationServiceRequired() =>
+      _platform.isLocationServiceRequired();
+
+  /// Whether the system location toggle is currently on.
+  ///
+  /// Only meaningful when [isLocationServiceRequired] is true. Reports `true`
+  /// everywhere it does not apply, so a plain `&&` reads correctly on every
+  /// platform.
+  Future<bool> isLocationServiceEnabled() =>
+      _platform.isLocationServiceEnabled();
+
+  /// Opens the system location settings screen.
+  ///
+  /// Returns `true` if the screen was opened. This is a system-wide setting,
+  /// not an app permission, so there is no way to change it from inside the
+  /// app and no prompt to show. Android only; `false` elsewhere.
+  Future<bool> openLocationSettings() => _platform.openLocationSettings();
 
   // ── Adapter ──────────────────────────────────────────────────────────
 

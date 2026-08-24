@@ -779,8 +779,13 @@ static void flutter_classic_bluetooth_plugin_handle_method_call(
         strcmp(method, "requestPermissions") == 0) {
         g_autoptr(FlValue) result = fl_value_new_string("notRequired");
         response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
-    } else if (strcmp(method, "openAppSettings") == 0) {
+    } else if (strcmp(method, "openAppSettings") == 0 ||
+               strcmp(method, "openLocationSettings") == 0 ||
+               strcmp(method, "isLocationServiceRequired") == 0) {
         g_autoptr(FlValue) result = fl_value_new_bool(FALSE);
+        response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+    } else if (strcmp(method, "isLocationServiceEnabled") == 0) {
+        g_autoptr(FlValue) result = fl_value_new_bool(TRUE);
         response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
     } else if (strcmp(method, "isSupported") == 0) {
         response = handle_is_supported(self);

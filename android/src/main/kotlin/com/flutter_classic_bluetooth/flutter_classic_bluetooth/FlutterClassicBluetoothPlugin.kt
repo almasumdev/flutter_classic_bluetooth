@@ -123,15 +123,27 @@ class FlutterClassicBluetoothPlugin :
 
     // ── Method Call Handler ────────────────────────────────────────────
 
+    /** The permission scopes named by the call, or the client default. */
+    private fun scopesOf(call: MethodCall): List<String> {
+        val raw = call.argument<List<String>>("permissions")
+        return if (raw.isNullOrEmpty()) PermissionManager.DEFAULT_SCOPES else raw
+    }
+
     @Suppress("MissingPermission")
     override fun onMethodCall(call: MethodCall, result: Result) {
         when (call.method) {
             "checkPermissions" ->
-                result.success(permissionManager.permissionStatus(context))
+                result.success(permissionManager.permissionStatus(context, scopesOf(call)))
             "requestPermissions" ->
-                permissionManager.requestPermissionsForStatus(context, result)
+                permissionManager.requestPermissionsForStatus(context, scopesOf(call), result)
             "openAppSettings" ->
                 result.success(permissionManager.openAppSettings(context))
+            "isLocationServiceRequired" ->
+                result.success(permissionManager.isLocationServiceRequired())
+            "isLocationServiceEnabled" ->
+                result.success(permissionManager.isLocationServiceEnabled(context))
+            "openLocationSettings" ->
+                result.success(permissionManager.openLocationSettings(context))
 
             "isSupported" -> result.success(
                 context.packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH)
@@ -141,10 +153,10 @@ class FlutterClassicBluetoothPlugin :
             "enableBluetooth" -> handleEnableBluetooth(result)
             "disableBluetooth" -> handleDisableBluetooth(result)
 
-            "getAdapterName" -> permissionManager.ensurePermissions(context, result) {
+            "getAdapterName" -> permissionManager.ensurePermissions(context, result, listOf(PermissionManager.CONNECT)) {
                 result.success(adapter?.name)
             }
-            "getAdapterAddress" -> permissionManager.ensurePermissions(context, result) {
+            "getAdapterAddress" -> permissionManager.ensurePermissions(context, result, listOf(PermissionManager.CONNECT)) {
                 result.success(adapter?.address)
             }
 
@@ -177,7 +189,7 @@ class FlutterClassicBluetoothPlugin :
             result.success(true)
             return
         }
-        permissionManager.ensurePermissions(context, result) {
+        permissionManager.ensurePermissions(context, result, listOf(PermissionManager.CONNECT)) {
             val intent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
             activityResultManager.startActivityForResult(
                 intent, ActivityResultManager.REQUEST_ENABLE_BT, result
@@ -191,7 +203,7 @@ class FlutterClassicBluetoothPlugin :
             result.error("bluetoothDisabled", "No Bluetooth adapter", null)
             return
         }
-        permissionManager.ensurePermissions(context, result) {
+        permissionManager.ensurePermissions(context, result, listOf(PermissionManager.CONNECT)) {
             @Suppress("DEPRECATION")
             val success = adapter!!.disable()
             result.success(success)
@@ -207,7 +219,7 @@ class FlutterClassicBluetoothPlugin :
             result.error("bluetoothDisabled", "No Bluetooth adapter", null)
             return
         }
-        permissionManager.ensurePermissions(context, result) {
+        permissionManager.ensurePermissions(context, result, listOf(PermissionManager.SCAN)) {
             if (bt.isDiscovering) bt.cancelDiscovery()
             val started = bt.startDiscovery()
             if (started) result.success(null)
@@ -217,7 +229,7 @@ class FlutterClassicBluetoothPlugin :
 
     @Suppress("MissingPermission")
     private fun handleStopDiscovery(result: Result) {
-        permissionManager.ensurePermissions(context, result) {
+        permissionManager.ensurePermissions(context, result, listOf(PermissionManager.SCAN)) {
             adapter?.cancelDiscovery()
             result.success(null)
         }
@@ -232,7 +244,7 @@ class FlutterClassicBluetoothPlugin :
             result.error("bluetoothDisabled", "No Bluetooth adapter", null)
             return
         }
-        permissionManager.ensurePermissions(context, result) {
+        permissionManager.ensurePermissions(context, result, listOf(PermissionManager.CONNECT)) {
             val devices = bt.bondedDevices
                 ?.filter { it.type != BluetoothDevice.DEVICE_TYPE_LE }
                 ?.map { BluetoothHelper.deviceToMap(it) }
@@ -248,7 +260,7 @@ class FlutterClassicBluetoothPlugin :
             result.error("invalidAddress", "Address is required", null)
             return
         }
-        permissionManager.ensurePermissions(context, result) {
+        permissionManager.ensurePermissions(context, result, listOf(PermissionManager.CONNECT)) {
             val device = adapter?.getRemoteDevice(address)
             if (device == null) {
                 result.error("invalidAddress", "Device not found: $address", null)
@@ -266,7 +278,7 @@ class FlutterClassicBluetoothPlugin :
             result.error("invalidAddress", "Address is required", null)
             return
         }
-        permissionManager.ensurePermissions(context, result) {
+        permissionManager.ensurePermissions(context, result, listOf(PermissionManager.CONNECT)) {
             val device = adapter?.getRemoteDevice(address)
             if (device == null) {
                 result.error("invalidAddress", "Device not found: $address", null)
@@ -296,7 +308,7 @@ class FlutterClassicBluetoothPlugin :
             return
         }
 
-        permissionManager.ensurePermissions(context, result) {
+        permissionManager.ensurePermissions(context, result, listOf(PermissionManager.CONNECT)) {
             Thread {
                 try {
                     val device = adapter?.getRemoteDevice(address)
@@ -410,7 +422,7 @@ class FlutterClassicBluetoothPlugin :
             return
         }
 
-        permissionManager.ensurePermissions(context, result) {
+        permissionManager.ensurePermissions(context, result, listOf(PermissionManager.CONNECT)) {
             try {
                 val serverId = nextServerId.getAndIncrement()
                 val server = BluetoothServerSocketWrapper(
@@ -467,7 +479,7 @@ class FlutterClassicBluetoothPlugin :
 
     private fun handleSetDiscoverable(call: MethodCall, result: Result) {
         val duration = call.argument<Int>("duration") ?: 120
-        permissionManager.ensurePermissions(context, result) {
+        permissionManager.ensurePermissions(context, result, listOf(PermissionManager.ADVERTISE)) {
             val intent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
                 putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, duration)
             }

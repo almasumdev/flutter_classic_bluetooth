@@ -138,6 +138,45 @@ enum BtcConnectionState {
   disconnecting,
 }
 
+/// A Bluetooth capability that may need its own permission.
+///
+/// Android 12 (API 31) split one Bluetooth permission into three, each
+/// covering different calls, so an app that only talks to a paired device no
+/// longer has to ask for permission to scan. Ask for what you use:
+///
+/// | Value | Covers | Android 12+ | Android 11 and below |
+/// |-------|--------|-------------|----------------------|
+/// | [scan] | `startDiscovery`, `scan` | `BLUETOOTH_SCAN` | location permission |
+/// | [connect] | `connect`, `getPairedDevices`, bonding, servers | `BLUETOOTH_CONNECT` | nothing at runtime |
+/// | [advertise] | `setDiscoverable` | `BLUETOOTH_ADVERTISE` | nothing at runtime |
+///
+/// On Android 11 and below only scanning is gated, and it is gated by
+/// location rather than by Bluetooth. Everything else was granted at install
+/// time. On every other platform this distinction does not exist and all three
+/// resolve to the same answer.
+///
+/// {@category Enums}
+enum BtcPermission {
+  /// Discovering nearby devices.
+  ///
+  /// `BLUETOOTH_SCAN` on Android 12 and above. Below that,
+  /// `ACCESS_FINE_LOCATION` on Android 10 and 11, or coarse location on
+  /// Android 9 and below, plus the system location toggle being switched on.
+  scan,
+
+  /// Connecting, reading the paired list, bonding, and running a server.
+  ///
+  /// `BLUETOOTH_CONNECT` on Android 12 and above. Nothing at runtime below
+  /// that, where it was granted at install time.
+  connect,
+
+  /// Making this device discoverable to others.
+  ///
+  /// `BLUETOOTH_ADVERTISE` on Android 12 and above. Nothing at runtime below
+  /// that.
+  advertise,
+}
+
 /// Whether the app holds the Bluetooth permissions the platform requires.
 ///
 /// | Status | Description |

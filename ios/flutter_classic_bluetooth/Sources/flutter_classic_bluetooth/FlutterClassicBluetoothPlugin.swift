@@ -74,6 +74,17 @@ public class FlutterClassicBluetoothPlugin: NSObject, FlutterPlugin {
                 }
             }
 
+        // iOS has one Bluetooth grant covering everything, so the requested
+        // scopes make no difference to the answer.
+        case "isLocationServiceRequired":
+            result(false)
+
+        case "isLocationServiceEnabled":
+            result(true)
+
+        case "openLocationSettings":
+            result(false)
+
         case "openAppSettings":
             guard let url = URL(string: UIApplication.openSettingsURLString) else {
                 result(false)

@@ -39,19 +39,39 @@ class MethodChannelFlutterClassicBluetooth
   // ── Permissions ──────────────────────────────────────────────────────
 
   @override
-  Future<BtcPermissionStatus> checkPermissions() async {
-    return _permissionStatus(await _invokeOptional<String>('checkPermissions'));
+  Future<BtcPermissionStatus> checkPermissions(
+      Set<BtcPermission> permissions) async {
+    return _permissionStatus(
+      await _invokeOptional<String>('checkPermissions', permissions),
+    );
   }
 
   @override
-  Future<BtcPermissionStatus> requestPermissions() async {
+  Future<BtcPermissionStatus> requestPermissions(
+      Set<BtcPermission> permissions) async {
     return _permissionStatus(
-        await _invokeOptional<String>('requestPermissions'));
+      await _invokeOptional<String>('requestPermissions', permissions),
+    );
   }
 
   @override
   Future<bool> openAppSettings() async {
     return await _invokeOptional<bool>('openAppSettings') ?? false;
+  }
+
+  @override
+  Future<bool> isLocationServiceRequired() async {
+    return await _invokeOptional<bool>('isLocationServiceRequired') ?? false;
+  }
+
+  @override
+  Future<bool> isLocationServiceEnabled() async {
+    return await _invokeOptional<bool>('isLocationServiceEnabled') ?? true;
+  }
+
+  @override
+  Future<bool> openLocationSettings() async {
+    return await _invokeOptional<bool>('openLocationSettings') ?? false;
   }
 
   /// Like `_invoke`, but returns `null` when the native side does not
@@ -61,9 +81,17 @@ class MethodChannelFlutterClassicBluetooth
   /// a Dart layer newer than the bundled native build would otherwise throw
   /// [MissingPluginException] here. A platform with no permission API has
   /// nothing to report, which is what `null` means to the callers below.
-  Future<T?> _invokeOptional<T>(String method) async {
+  Future<T?> _invokeOptional<T>(
+    String method, [
+    Set<BtcPermission>? permissions,
+  ]) async {
     try {
-      return await _invoke<T>(method);
+      return await _invoke<T>(
+        method,
+        permissions == null
+            ? null
+            : {'permissions': permissions.map((p) => p.name).toList()},
+      );
     } on MissingPluginException {
       return null;
     }

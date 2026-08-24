@@ -14,15 +14,21 @@ class MockFlutterClassicBluetoothPlatform
   /// Records each permission call, in order.
   final permissionCalls = <String>[];
 
+  /// The scopes each permission call was made with, in order.
+  final permissionScopes = <Set<BtcPermission>>[];
+
   @override
-  Future<BtcPermissionStatus> checkPermissions() {
+  Future<BtcPermissionStatus> checkPermissions(Set<BtcPermission> permissions) {
     permissionCalls.add('check');
+    permissionScopes.add(permissions);
     return Future.value(permissionStatus);
   }
 
   @override
-  Future<BtcPermissionStatus> requestPermissions() {
+  Future<BtcPermissionStatus> requestPermissions(
+      Set<BtcPermission> permissions) {
     permissionCalls.add('request');
+    permissionScopes.add(permissions);
     return Future.value(permissionStatus);
   }
 
@@ -31,6 +37,15 @@ class MockFlutterClassicBluetoothPlatform
     permissionCalls.add('settings');
     return Future.value(true);
   }
+
+  @override
+  Future<bool> isLocationServiceRequired() => Future.value(false);
+
+  @override
+  Future<bool> isLocationServiceEnabled() => Future.value(true);
+
+  @override
+  Future<bool> openLocationSettings() => Future.value(false);
 
   @override
   Future<bool> isSupported() => Future.value(true);

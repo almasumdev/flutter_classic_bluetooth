@@ -56,14 +56,22 @@ jobs:
         include:
           - platform: android
             os: ubuntu-latest
+            args: --debug
           - platform: linux
             os: ubuntu-latest
+            args: --debug
+          # Release, because a debug INSTALL step trips over a googletest PDB
+          # copy in the Flutter Windows runner template. The C++ is compiled
+          # either way; release is the configuration that completes.
           - platform: windows
             os: windows-latest
+            args: --release
           - platform: ios
             os: macos-latest
+            args: --debug --no-codesign
           - platform: macos
             os: macos-latest
+            args: --debug
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
@@ -88,7 +96,7 @@ jobs:
         working-directory: example
         run: |
           flutter pub get
-          flutter build ${{ matrix.platform }} --debug ${{ matrix.platform == 'ios' && '--no-codesign' || '' }}
+          flutter build ${{ matrix.platform }} ${{ matrix.args }}
 
   pana:
     name: Pana score gate
