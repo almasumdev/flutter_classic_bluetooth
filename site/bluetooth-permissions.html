@@ -108,6 +108,7 @@
 <tr><td><code>notRequired</code></td><td>No runtime permission exists here</td><td>Treat as granted</td></tr>
 </tbody></table></div></div>
 <p>Only Android and iOS report the first three. Windows, macOS and Linux always report <code>notRequired</code>, because they decide Bluetooth access at build time through a manifest entry, an entitlement or the system's D-Bus policy. Writing against the status rather than against the platform name means one code path covers all five.</p>
+<p>Android is where this matters most: a refusal there blocks scanning and connecting outright. On iOS the permission governs CoreBluetooth, which this plugin uses only to read adapter state, so a refusal makes <code>adapterState</code> report <code>unauthorized</code> but does not stop you reaching an accessory. MFi access is gated by the protocol strings you declared, not by this permission.</p>
 
 <h2 id="permanent-denial">Permanent denial<a class="anchor" href="#permanent-denial" aria-label="Link to this section">#</a></h2>
 <p>Android reaches <code>permanentlyDenied</code> after a second refusal, or one with "don't ask again" selected. iOS reaches it on any refusal, since it never re-prompts. From there <code>requestPermissions</code> returns immediately without showing anything, so a retry button is a dead end.</p>

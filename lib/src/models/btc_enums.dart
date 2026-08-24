@@ -151,6 +151,12 @@ enum BtcConnectionState {
 /// and Linux report [notRequired], since their access is decided at build time
 /// by a manifest entry or an entitlement rather than by the user at runtime.
 ///
+/// The two differ in what a refusal costs. On Android it blocks scanning and
+/// connecting outright. On iOS the permission governs CoreBluetooth, which this
+/// plugin uses only to read adapter state, so a refusal shows up as
+/// `BtcAdapterState.unauthorized` while reaching an MFi accessory still works;
+/// that path is gated by the protocol strings the app declares instead.
+///
 /// {@category Enums}
 enum BtcPermissionStatus {
   /// Every permission the platform requires is held. Bluetooth calls will not
