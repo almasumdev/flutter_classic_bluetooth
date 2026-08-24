@@ -38,6 +38,23 @@ abstract class FlutterClassicBluetoothPlatform extends PlatformInterface {
     _instance = instance;
   }
 
+  // ── Permissions ───────────────────────────────────────────────────────
+
+  /// Returns the current Bluetooth permission status without prompting.
+  Future<BtcPermissionStatus> checkPermissions() {
+    throw UnimplementedError('checkPermissions() has not been implemented.');
+  }
+
+  /// Requests the Bluetooth permissions the platform requires.
+  Future<BtcPermissionStatus> requestPermissions() {
+    throw UnimplementedError('requestPermissions() has not been implemented.');
+  }
+
+  /// Opens this app's system settings page.
+  Future<bool> openAppSettings() {
+    throw UnimplementedError('openAppSettings() has not been implemented.');
+  }
+
   // ── Adapter ──────────────────────────────────────────────────────────
 
   /// Returns whether Bluetooth Classic is supported on this device.

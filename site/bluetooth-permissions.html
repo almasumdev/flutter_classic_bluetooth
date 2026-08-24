@@ -22,7 +22,7 @@
 <header class="topbar">
   <button class="menu" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
   <a class="brand" href="/"><img src="/logo.svg" alt="" width="24" height="24">flutter_classic_bluetooth</a>
-  <span class="ver">v0.1.10</span>
+  <span class="ver">v1.0.0</span>
   <div class="grow"></div>
   <a class="ext" href="https://pub.dev/packages/flutter_classic_bluetooth"><span>pub.dev</span></a>
   <a class="ext" href="https://github.com/almasumdev/flutter_classic_bluetooth" aria-label="Source on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true" width="16" height="16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg><span>GitHub</span></a>
@@ -51,7 +51,7 @@
 &lt;uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" /&gt;
 &lt;uses-permission android:name="android.permission.BLUETOOTH_CONNECT" /&gt;
 &lt;uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" /&gt;</code></pre></div>
-<p>Two things trip people up here. On Android 11 and below, <strong>scanning requires location permission</strong>, because a nearby-device list can be used to infer where someone is. And on Android 12 and above, <code>BLUETOOTH_SCAN</code> and <code>BLUETOOTH_CONNECT</code> are runtime permissions, so declaring them is not enough. The plugin prompts for them when you call a method that needs one.</p>
+<p>Two things trip people up here. On Android 11 and below, <strong>scanning requires location permission</strong>, because a nearby-device list can be used to infer where someone is. And on Android 12 and above, <code>BLUETOOTH_SCAN</code> and <code>BLUETOOTH_CONNECT</code> are runtime permissions, so declaring them is not enough. The plugin requests those for you when you call a method that needs one, or you can <a href="#asking-at-a-moment-that-makes-sense">ask up front</a>.</p>
 <p><code>neverForLocation</code> tells Android you are not using scan results to derive location, which keeps the permission prompt narrower. Drop that flag if you genuinely do.</p>
 
 <h2 id="ios">iOS<a class="anchor" href="#ios" aria-label="Link to this section">#</a></h2>
@@ -78,6 +78,50 @@
 <h2 id="windows">Windows<a class="anchor" href="#windows" aria-label="Link to this section">#</a></h2>
 <p>Nothing to declare. The plugin uses Winsock2 <code>AF_BTH</code> sockets, which need no manifest entry or capability.</p>
 
+<h2 id="asking-at-a-moment-that-makes-sense">Asking at a moment that makes sense<a class="anchor" href="#asking-at-a-moment-that-makes-sense" aria-label="Link to this section">#</a></h2>
+<p>Every call that needs a permission requests it implicitly, so the plugin works with no permission code at all. The cost is that the first scan raises a system dialog out of nowhere, with no explanation of why the app wants it, which is the version users refuse.</p>
+<p>Ask on your own terms instead.</p>
+<div class="codeblock"><pre><code>switch (await bluetooth.checkPermissions()) {
+  case BtcPermissionStatus.granted:
+  case BtcPermissionStatus.notRequired:
+    startScanning();
+
+  case BtcPermissionStatus.denied:
+    // The system will still prompt. Explain why, then ask.
+    if (await bluetooth.requestPermissions() == BtcPermissionStatus.granted) {
+      startScanning();
+    }
+
+  case BtcPermissionStatus.permanentlyDenied:
+    // The system has stopped asking. Only settings can change it.
+    await bluetooth.openAppSettings();
+}</code></pre></div>
+<p><code>checkPermissions</code> never prompts, so it is safe to call while building a screen.</p>
+
+<h2 id="the-four-statuses">The four statuses<a class="anchor" href="#the-four-statuses" aria-label="Link to this section">#</a></h2>
+<div class="tablewrap"><div class="tablewrap"><table>
+<thead><tr><th>Status</th><th>Meaning</th><th>What to do</th></tr></thead>
+<tbody>
+<tr><td><code>granted</code></td><td>Everything required is held</td><td>Carry on</td></tr>
+<tr><td><code>denied</code></td><td>Not held, but the system will still prompt</td><td>Show a reason, then request</td></tr>
+<tr><td><code>permanentlyDenied</code></td><td>The system has stopped prompting</td><td>Offer <code>openAppSettings</code></td></tr>
+<tr><td><code>notRequired</code></td><td>No runtime permission exists here</td><td>Treat as granted</td></tr>
+</tbody></table></div></div>
+<p>Only Android and iOS report the first three. Windows, macOS and Linux always report <code>notRequired</code>, because they decide Bluetooth access at build time through a manifest entry, an entitlement or the system's D-Bus policy. Writing against the status rather than against the platform name means one code path covers all five.</p>
+
+<h2 id="permanent-denial">Permanent denial<a class="anchor" href="#permanent-denial" aria-label="Link to this section">#</a></h2>
+<p>Android reaches <code>permanentlyDenied</code> after a second refusal, or one with "don't ask again" selected. iOS reaches it on any refusal, since it never re-prompts. From there <code>requestPermissions</code> returns immediately without showing anything, so a retry button is a dead end.</p>
+<div class="codeblock"><pre><code>final status = await bluetooth.requestPermissions();
+if (status == BtcPermissionStatus.permanentlyDenied) {
+  await bluetooth.openAppSettings();
+}</code></pre></div>
+<p><code>openAppSettings</code> backgrounds your app, and the user can come back without having changed anything, so re-check on resume rather than assuming the trip worked.</p>
+<div class="codeblock"><pre><code>@override
+void didChangeAppLifecycleState(AppLifecycleState state) async {
+  if (state != AppLifecycleState.resumed) return;
+  final status = await bluetooth.checkPermissions();
+  if (mounted) setState(() =&gt; permission = status);
+}</code></pre></div>
 <h2 id="check-before-you-call">Check before you call<a class="anchor" href="#check-before-you-call" aria-label="Link to this section">#</a></h2>
 <p>Once setup is done, confirm the adapter is actually usable rather than assuming it.</p>
 <div class="codeblock"><pre><code>final bluetooth = FlutterClassicBluetooth();
@@ -104,7 +148,7 @@ if (!await bluetooth.isEnabled()) {
     </article>
   </main>
 
-  <aside class="toc"><nav aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ul><li><a href="#install">Install</a></li><li><a href="#android">Android</a></li><li><a href="#ios">iOS</a></li><li><a href="#macos">macOS</a></li><li><a href="#linux">Linux</a></li><li><a href="#windows">Windows</a></li><li><a href="#check-before-you-call">Check before you call</a></li></ul></nav></aside>
+  <aside class="toc"><nav aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ul><li><a href="#install">Install</a></li><li><a href="#android">Android</a></li><li><a href="#ios">iOS</a></li><li><a href="#macos">macOS</a></li><li><a href="#linux">Linux</a></li><li><a href="#windows">Windows</a></li><li><a href="#asking-at-a-moment-that-makes-sense">Asking at a moment that makes sense</a></li><li><a href="#the-four-statuses">The four statuses</a></li><li><a href="#permanent-denial">Permanent denial</a></li><li><a href="#check-before-you-call">Check before you call</a></li></ul></nav></aside>
 </div>
 
 <script src="/docs.029eb910a1.js" defer></script>

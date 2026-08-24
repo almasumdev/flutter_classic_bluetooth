@@ -8,6 +8,7 @@ public class FlutterClassicBluetoothPlugin: NSObject, FlutterPlugin {
     private var connections: [Int: EASessionWrapper] = [:]
     private var nextConnectionId = 0
     private let adapterStateHandler = AdapterStateStreamHandler()
+    private let permissionRequester = PermissionRequester()
 
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(
@@ -58,6 +59,32 @@ public class FlutterClassicBluetoothPlugin: NSObject, FlutterPlugin {
         let args = call.arguments as? [String: Any]
 
         switch call.method {
+        case "checkPermissions":
+            result(FlutterClassicBluetoothPlugin.permissionStatusString())
+
+        case "requestPermissions":
+            // Already settled one way or the other: iOS will not ask again, so
+            // report rather than instantiating a manager that shows nothing.
+            let current = FlutterClassicBluetoothPlugin.permissionStatusString()
+            if current != "denied" {
+                result(current)
+            } else {
+                permissionRequester.request { status in
+                    result(status)
+                }
+            }
+
+        case "openAppSettings":
+            guard let url = URL(string: UIApplication.openSettingsURLString) else {
+                result(false)
+                return
+            }
+            DispatchQueue.main.async {
+                UIApplication.shared.open(url, options: [:]) { opened in
+                    result(opened)
+                }
+            }
+
         case "isSupported":
             // iOS supports Bluetooth Classic only for MFi accessories
             result(true)
@@ -388,6 +415,70 @@ private class IOSStreamHandler: NSObject, FlutterStreamHandler {
 /// Bridges CoreBluetooth's central-manager power state to the adapter_state
 /// event channel. The manager is created lazily so the Bluetooth permission
 /// prompt only appears when the app actually queries adapter state.
+extension FlutterClassicBluetoothPlugin {
+    /// Maps CoreBluetooth's authorization onto the Dart `BtcPermissionStatus`
+    /// names.
+    ///
+    /// `notDetermined` is reported as `denied` because the prompt has not been
+    /// shown yet, so requesting can still succeed. `denied` and `restricted`
+    /// are both permanent: iOS never re-prompts, and only the Settings app can
+    /// change either.
+    static func permissionStatusString() -> String {
+        // The class property arrived in 13.1; 13.0 only exposes authorization
+        // on a live manager instance, which may not exist yet. Reporting
+        // `denied` there is the safe answer: a request can still prompt, and a
+        // refusal still surfaces as BtcPermissionException from the call.
+        guard #available(iOS 13.1, *) else { return "denied" }
+        switch CBManager.authorization {
+        case .allowedAlways:
+            return "granted"
+        case .denied, .restricted:
+            return "permanentlyDenied"
+        case .notDetermined:
+            return "denied"
+        @unknown default:
+            return "denied"
+        }
+    }
+}
+
+/// Raises the iOS Bluetooth prompt and reports where it landed.
+///
+/// Instantiating a `CBCentralManager` is what triggers the system dialog, and
+/// the authorization answer is only final once CoreBluetooth reports a state,
+/// so the manager is retained and the caller is answered from the delegate.
+private class PermissionRequester: NSObject, CBCentralManagerDelegate {
+    private var manager: CBCentralManager?
+    private var completion: ((String) -> Void)?
+
+    func request(_ completion: @escaping (String) -> Void) {
+        // One dialog at a time; a second caller would otherwise orphan the
+        // first completion and leave it hanging forever.
+        if self.completion != nil {
+            completion(FlutterClassicBluetoothPlugin.permissionStatusString())
+            return
+        }
+        self.completion = completion
+        if manager == nil {
+            manager = CBCentralManager(delegate: self, queue: nil)
+        } else {
+            // A manager already exists, so the prompt has been shown before and
+            // the current authorization is the answer.
+            finish()
+        }
+    }
+
+    func centralManagerDidUpdateState(_ central: CBCentralManager) {
+        finish()
+    }
+
+    private func finish() {
+        guard let done = completion else { return }
+        completion = nil
+        done(FlutterClassicBluetoothPlugin.permissionStatusString())
+    }
+}
+
 private class AdapterStateStreamHandler: NSObject, FlutterStreamHandler, CBCentralManagerDelegate {
     private var eventSink: FlutterEventSink?
     private var centralManager: CBCentralManager?

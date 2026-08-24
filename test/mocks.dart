@@ -8,6 +8,30 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 class MockFlutterClassicBluetoothPlatform
     with MockPlatformInterfaceMixin
     implements FlutterClassicBluetoothPlatform {
+  /// Overridden by tests that exercise the permission flow.
+  BtcPermissionStatus permissionStatus = BtcPermissionStatus.granted;
+
+  /// Records each permission call, in order.
+  final permissionCalls = <String>[];
+
+  @override
+  Future<BtcPermissionStatus> checkPermissions() {
+    permissionCalls.add('check');
+    return Future.value(permissionStatus);
+  }
+
+  @override
+  Future<BtcPermissionStatus> requestPermissions() {
+    permissionCalls.add('request');
+    return Future.value(permissionStatus);
+  }
+
+  @override
+  Future<bool> openAppSettings() {
+    permissionCalls.add('settings');
+    return Future.value(true);
+  }
+
   @override
   Future<bool> isSupported() => Future.value(true);
 

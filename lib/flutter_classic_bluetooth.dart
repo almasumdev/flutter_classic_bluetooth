@@ -35,6 +35,7 @@
 /// | [BtcDeviceType] | Classic, LE, or Dual-mode |
 /// | [BtcConnectionState] | Connection lifecycle states |
 /// | [BtcReconnectState] | Auto-reconnect link states |
+/// | [BtcPermissionStatus] | Whether the app holds the required permissions |
 ///
 /// ## Exceptions
 ///
@@ -56,6 +57,7 @@
 ///
 /// | Feature | Android | iOS | Windows | macOS | Linux |
 /// |---------|---------|-----|---------|-------|-------|
+/// | Permissions | Yes | Yes | n/a(5) | n/a(5) | n/a(5) |
 /// | Adapter state | Yes | Yes | Yes | Yes | Yes |
 /// | Discovery | Yes | No | Yes | Yes | Yes |
 /// | Paired devices | Yes | Yes(1) | Yes | Yes | Yes |
@@ -71,10 +73,18 @@
 /// (3) Linux uses the BlueZ D-Bus API (org.bluez); pairing a PIN/passkey device
 ///     needs a system pairing agent.
 /// (4) macOS has no public API to remove a pairing; unpair via System Settings.
+/// (5) Windows, macOS and Linux grant Bluetooth access at build time, through a
+///     manifest entry, an entitlement or the system's D-Bus policy, so
+///     `checkPermissions` reports `notRequired` and there is nothing to ask for.
 ///
 /// ## Example
 ///
 /// ```dart
+/// // Ask for permissions at a moment the user expects it
+/// if (await bluetooth.checkPermissions() == BtcPermissionStatus.denied) {
+///   await bluetooth.requestPermissions();
+/// }
+///
 /// // Discover and connect
 /// final caps = await bluetooth.getPlatformCapabilities();
 /// if (caps.canDiscoverDevices) {

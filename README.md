@@ -70,6 +70,7 @@ through broadcast streams.
 - [Platform setup](#platform-setup)
 - [Getting started](#getting-started)
   - [Initialize and check support](#initialize-and-check-support)
+  - [Request permissions](#request-permissions)
   - [Discover nearby devices](#discover-nearby-devices)
   - [List paired devices](#list-paired-devices)
   - [Connect to a device](#connect-to-a-device)
@@ -109,6 +110,7 @@ Dart API. Expand a group for details:
 <details>
 <summary><b>🔍 Discovery & pairing</b></summary>
 
+- **Permission API**: check, request, and open app settings, with no extra package
 - Device **discovery** with results and start/stop state streams, plus a one-shot `scan()`
 - **Paired/bonded** device listing
 - **Bond / unbond** devices and observe bond-state changes
@@ -192,6 +194,7 @@ list; [contributions](#support-and-feedback) welcome.
 - ✅ **Five platforms**: Android, Windows, macOS, Linux, iOS (MFi)
 - ✅ Linux via **BlueZ D-Bus**: discovery, adapter and pairing work without root
 - ✅ **Connection RSSI** on macOS: read the live link signal strength with `connection.readRssi()`
+- ✅ **Permission API**: `checkPermissions()`, `requestPermissions()` and `openAppSettings()`, with permanent-denial detection on Android and iOS
 
 **Planned**
 
@@ -293,6 +296,38 @@ if (caps.canDiscoverDevices) {
   // safe to call startDiscovery() on this platform
 }
 ```
+
+### Request permissions
+
+Ask when the user expects it, rather than letting the first scan raise the
+system dialog out of nowhere. Every call that needs a permission still requests
+it implicitly, so this is a chance to ask early, not an extra step:
+
+```dart
+switch (await bluetooth.checkPermissions()) {
+  case BtcPermissionStatus.granted:
+  case BtcPermissionStatus.notRequired:
+    startScanning();
+
+  case BtcPermissionStatus.denied:
+    // The system will still prompt. Explain why first, then ask.
+    if (await bluetooth.requestPermissions() == BtcPermissionStatus.granted) {
+      startScanning();
+    }
+
+  case BtcPermissionStatus.permanentlyDenied:
+    // The system has stopped asking; only settings can change it.
+    await bluetooth.openAppSettings();
+}
+```
+
+`notRequired` is what Windows, macOS and Linux report: they grant Bluetooth
+access at build time through a manifest entry, an entitlement, or the system's
+D-Bus policy, so there is nothing to request. Treat it exactly like `granted`.
+
+`openAppSettings` backgrounds the app, and the user may come back without
+having changed anything, so re-check with `checkPermissions` on resume rather
+than assuming the trip worked.
 
 ### Discover nearby devices
 

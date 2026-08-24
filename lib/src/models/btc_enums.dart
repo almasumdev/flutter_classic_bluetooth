@@ -137,3 +137,43 @@ enum BtcConnectionState {
   /// begins, before the final [disconnected].
   disconnecting,
 }
+
+/// Whether the app holds the Bluetooth permissions the platform requires.
+///
+/// | Status | Description |
+/// |--------|-------------|
+/// | granted | Every required permission is held |
+/// | denied | Not held, but the system will still show a prompt |
+/// | permanentlyDenied | Refused for good; only app settings can change it |
+/// | notRequired | The platform has no runtime Bluetooth permission |
+///
+/// Only Android and iOS gate Bluetooth behind a runtime prompt. Windows, macOS
+/// and Linux report [notRequired], since their access is decided at build time
+/// by a manifest entry or an entitlement rather than by the user at runtime.
+///
+/// {@category Enums}
+enum BtcPermissionStatus {
+  /// Every permission the platform requires is held. Bluetooth calls will not
+  /// throw `BtcPermissionException`.
+  granted,
+
+  /// Not held yet, and the system will still show a prompt when asked.
+  ///
+  /// This covers both "never asked" and "asked once and dismissed". Calling
+  /// `requestPermissions` from this state shows the system dialog.
+  denied,
+
+  /// Refused in a way the system will not prompt for again.
+  ///
+  /// On Android this is a second refusal, or one with "don't ask again"
+  /// selected; on iOS, any refusal. `requestPermissions` cannot recover from
+  /// here and returns this same status without showing anything, so send the
+  /// user to `openAppSettings` instead.
+  permanentlyDenied,
+
+  /// The platform has no runtime Bluetooth permission to hold.
+  ///
+  /// Reported by Windows, macOS and Linux. Treat it exactly like [granted]:
+  /// there is nothing to request and nothing for the user to fix.
+  notRequired,
+}

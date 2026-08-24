@@ -222,7 +222,13 @@ void FlutterClassicBluetoothPlugin::HandleMethodCall(
 
   const auto& method = method_call.method_name();
 
-  if (method == "isSupported") {
+  // Winsock2 AF_BTH sockets need no manifest capability and raise no runtime
+  // prompt, so there is no permission for the caller to hold or request.
+  if (method == "checkPermissions" || method == "requestPermissions") {
+    result->Success(EncodableValue("notRequired"));
+  } else if (method == "openAppSettings") {
+    result->Success(EncodableValue(false));
+  } else if (method == "isSupported") {
     HandleIsSupported(std::move(result));
   } else if (method == "isEnabled") {
     HandleIsEnabled(std::move(result));

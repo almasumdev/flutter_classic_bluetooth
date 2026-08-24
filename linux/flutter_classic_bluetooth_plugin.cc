@@ -773,7 +773,16 @@ static void flutter_classic_bluetooth_plugin_handle_method_call(
     const gchar* method = fl_method_call_get_name(method_call);
     FlValue* args = fl_method_call_get_args(method_call);
 
-    if (strcmp(method, "isSupported") == 0) {
+    // BlueZ access is granted by the system's D-Bus policy, not by a runtime
+    // prompt this plugin can raise, so there is no permission to request.
+    if (strcmp(method, "checkPermissions") == 0 ||
+        strcmp(method, "requestPermissions") == 0) {
+        g_autoptr(FlValue) result = fl_value_new_string("notRequired");
+        response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+    } else if (strcmp(method, "openAppSettings") == 0) {
+        g_autoptr(FlValue) result = fl_value_new_bool(FALSE);
+        response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
+    } else if (strcmp(method, "isSupported") == 0) {
         response = handle_is_supported(self);
     } else if (strcmp(method, "isEnabled") == 0) {
         response = handle_is_enabled(self);

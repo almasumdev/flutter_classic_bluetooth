@@ -126,6 +126,13 @@ class FlutterClassicBluetoothPlugin :
     @Suppress("MissingPermission")
     override fun onMethodCall(call: MethodCall, result: Result) {
         when (call.method) {
+            "checkPermissions" ->
+                result.success(permissionManager.permissionStatus(context))
+            "requestPermissions" ->
+                permissionManager.requestPermissionsForStatus(context, result)
+            "openAppSettings" ->
+                result.success(permissionManager.openAppSettings(context))
+
             "isSupported" -> result.success(
                 context.packageManager.hasSystemFeature(PackageManager.FEATURE_BLUETOOTH)
             )

@@ -36,6 +36,51 @@ class MethodChannelFlutterClassicBluetooth
   Stream<bool>? _discoveryStateStream;
   Stream<BtcDevice>? _discoveryResultsStream;
 
+  // ── Permissions ──────────────────────────────────────────────────────
+
+  @override
+  Future<BtcPermissionStatus> checkPermissions() async {
+    return _permissionStatus(await _invokeOptional<String>('checkPermissions'));
+  }
+
+  @override
+  Future<BtcPermissionStatus> requestPermissions() async {
+    return _permissionStatus(
+        await _invokeOptional<String>('requestPermissions'));
+  }
+
+  @override
+  Future<bool> openAppSettings() async {
+    return await _invokeOptional<bool>('openAppSettings') ?? false;
+  }
+
+  /// Like `_invoke`, but returns `null` when the native side does not
+  /// implement the method.
+  ///
+  /// The permission methods arrived after the rest of the channel contract, so
+  /// a Dart layer newer than the bundled native build would otherwise throw
+  /// [MissingPluginException] here. A platform with no permission API has
+  /// nothing to report, which is what `null` means to the callers below.
+  Future<T?> _invokeOptional<T>(String method) async {
+    try {
+      return await _invoke<T>(method);
+    } on MissingPluginException {
+      return null;
+    }
+  }
+
+  /// Maps a native status name onto [BtcPermissionStatus].
+  ///
+  /// A platform that predates this method returns nothing, which reads as
+  /// [BtcPermissionStatus.notRequired]: it has no runtime permission model, so
+  /// there is nothing for the caller to request.
+  BtcPermissionStatus _permissionStatus(String? name) {
+    return BtcPermissionStatus.values.firstWhere(
+      (e) => e.name == name,
+      orElse: () => BtcPermissionStatus.notRequired,
+    );
+  }
+
   // ── Adapter ──────────────────────────────────────────────────────────
 
   @override

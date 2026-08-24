@@ -81,6 +81,15 @@ public class FlutterClassicBluetoothPlugin: NSObject, FlutterPlugin {
         let args = call.arguments as? [String: Any]
 
         switch call.method {
+        // macOS reaches Bluetooth Classic through IOBluetooth, which is gated
+        // by the com.apple.security.device.bluetooth entitlement at build time
+        // rather than by a runtime prompt. There is nothing to request.
+        case "checkPermissions", "requestPermissions":
+            result("notRequired")
+
+        case "openAppSettings":
+            result(false)
+
         case "isSupported":
             result(IOBluetoothHostController.default() != nil)
 

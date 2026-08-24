@@ -63,6 +63,92 @@ class FlutterClassicBluetooth {
     r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
   );
 
+  // ── Permissions ──────────────────────────────────────────────────────
+
+  /// Returns the current Bluetooth permission status, without prompting.
+  ///
+  /// Use it to decide what to show before asking: skip an onboarding screen
+  /// when the answer is already [BtcPermissionStatus.granted], explain why the
+  /// permission is needed when it is [BtcPermissionStatus.denied], or point at
+  /// system settings when it is [BtcPermissionStatus.permanentlyDenied].
+  ///
+  /// ```dart
+  /// switch (await bluetooth.checkPermissions()) {
+  ///   case BtcPermissionStatus.granted:
+  ///   case BtcPermissionStatus.notRequired:
+  ///     startScanning();
+  ///   case BtcPermissionStatus.denied:
+  ///     showRationaleThenRequest();
+  ///   case BtcPermissionStatus.permanentlyDenied:
+  ///     showOpenSettingsButton();
+  /// }
+  /// ```
+  ///
+  /// | Platform | Supported |
+  /// |----------|-----------|
+  /// | Android | Yes |
+  /// | iOS | Yes |
+  /// | Windows | [BtcPermissionStatus.notRequired] |
+  /// | macOS | [BtcPermissionStatus.notRequired] |
+  /// | Linux | [BtcPermissionStatus.notRequired] |
+  ///
+  /// Never throws [BtcPermissionException]; asking about a permission is
+  /// always allowed.
+  Future<BtcPermissionStatus> checkPermissions() =>
+      _platform.checkPermissions();
+
+  /// Requests the Bluetooth permissions this platform requires, and returns
+  /// the status afterwards.
+  ///
+  /// Prefer calling this at a moment the user understands, rather than letting
+  /// the first [scan] or [connect] raise the dialog out of nowhere. Every
+  /// method that needs a permission still requests it implicitly, so this is an
+  /// opportunity to ask early, not an extra step you have to take.
+  ///
+  /// Returns [BtcPermissionStatus.granted] immediately if the permissions are
+  /// already held, and [BtcPermissionStatus.permanentlyDenied] without showing
+  /// anything once the system has stopped prompting. Only one request can be
+  /// outstanding at a time; a second concurrent call throws [BtcException]
+  /// with code `pendingOperation` rather than orphaning the first.
+  ///
+  /// ```dart
+  /// final status = await bluetooth.requestPermissions();
+  /// if (status == BtcPermissionStatus.permanentlyDenied) {
+  ///   await bluetooth.openAppSettings();
+  /// }
+  /// ```
+  ///
+  /// | Platform | Supported |
+  /// |----------|-----------|
+  /// | Android | Yes |
+  /// | iOS | Yes |
+  /// | Windows | [BtcPermissionStatus.notRequired] |
+  /// | macOS | [BtcPermissionStatus.notRequired] |
+  /// | Linux | [BtcPermissionStatus.notRequired] |
+  Future<BtcPermissionStatus> requestPermissions() =>
+      _platform.requestPermissions();
+
+  /// Opens this app's page in the system settings, so the user can grant a
+  /// permission the system will no longer prompt for.
+  ///
+  /// The only way out of [BtcPermissionStatus.permanentlyDenied]. Returns
+  /// `true` if the settings page was opened. Returns `false` where there is no
+  /// runtime permission to change, which is every platform reporting
+  /// [BtcPermissionStatus.notRequired].
+  ///
+  /// The app is backgrounded when this succeeds, and the user may return
+  /// without having changed anything, so re-check with [checkPermissions] on
+  /// resume rather than assuming the trip worked.
+  ///
+  /// | Platform | Supported |
+  /// |----------|-----------|
+  /// | Android | Yes |
+  /// | iOS | Yes |
+  /// | Windows | No (returns `false`) |
+  /// | macOS | No (returns `false`) |
+  /// | Linux | No (returns `false`) |
+  Future<bool> openAppSettings() => _platform.openAppSettings();
+
   // ── Adapter ──────────────────────────────────────────────────────────
 
   /// Returns whether Bluetooth Classic hardware is available on this device.

@@ -44,6 +44,52 @@ jobs:
           flutter analyze
           flutter test
 
+  # The Dart checks above never touch the native code, so a Kotlin, Swift or C
+  # error would otherwise reach pub.dev unbuilt. Each platform compiles the
+  # example, which links this plugin.
+  native:
+    name: Build natives (${{ matrix.platform }})
+    needs: checks
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: android
+            os: ubuntu-latest
+          - platform: linux
+            os: ubuntu-latest
+          - platform: windows
+            os: windows-latest
+          - platform: ios
+            os: macos-latest
+          - platform: macos
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - if: matrix.platform == 'android'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # GTK and BlueZ headers the Linux plugin compiles against.
+      - if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libbluetooth-dev ninja-build cmake pkg-config clang
+
+      - name: Build the example
+        working-directory: example
+        run: |
+          flutter pub get
+          flutter build ${{ matrix.platform }} --debug ${{ matrix.platform == 'ios' && '--no-codesign' || '' }}
+
   pana:
     name: Pana score gate
     needs: checks
@@ -83,7 +129,7 @@ jobs:
 
   version:
     name: Resolve version
-    needs: pana
+    needs: [pana, native]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     outputs:

@@ -19,7 +19,7 @@ def emit_asset(src, name, ext):
 
 BASE    = "https://flutter-classic-bluetooth.web.app"
 OUT     = "site"
-VERSION = "0.1.10"
+VERSION = "1.0.0"
 # IndexNow verification key. Must stay in step with the file emitted
 # at the site root, or Bing and Yandex reject the submission.
 INDEXNOW_KEY = "b41d7e6c92af08553ed1c47bb26f9a10"
@@ -244,6 +244,7 @@ for (final device in devices) {
 
 <h2>What it can do</h2>
 <ul>
+<li>Check and request the Bluetooth permissions each platform needs, with no extra package.</li>
 <li>Discover nearby devices and list the ones already paired.</li>
 <li>Connect over RFCOMM by MAC address and service UUID, then read and write bytes.</li>
 <li>Run an RFCOMM <a href="/rfcomm-server">server</a> that accepts incoming connections.</li>
@@ -305,7 +306,7 @@ PAGES.append(dict(
 <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
 """) + """
-<p>Two things trip people up here. On Android 11 and below, <strong>scanning requires location permission</strong>, because a nearby-device list can be used to infer where someone is. And on Android 12 and above, <code>BLUETOOTH_SCAN</code> and <code>BLUETOOTH_CONNECT</code> are runtime permissions, so declaring them is not enough. The plugin prompts for them when you call a method that needs one.</p>
+<p>Two things trip people up here. On Android 11 and below, <strong>scanning requires location permission</strong>, because a nearby-device list can be used to infer where someone is. And on Android 12 and above, <code>BLUETOOTH_SCAN</code> and <code>BLUETOOTH_CONNECT</code> are runtime permissions, so declaring them is not enough. The plugin requests those for you when you call a method that needs one, or you can <a href="#asking-at-a-moment-that-makes-sense">ask up front</a>.</p>
 <p><code>neverForLocation</code> tells Android you are not using scan results to derive location, which keeps the permission prompt narrower. Drop that flag if you genuinely do.</p>
 
 <h2>iOS</h2>
@@ -338,6 +339,56 @@ sudo apt-get install -y libgtk-3-dev libbluetooth-dev ninja-build cmake pkg-conf
 <h2>Windows</h2>
 <p>Nothing to declare. The plugin uses Winsock2 <code>AF_BTH</code> sockets, which need no manifest entry or capability.</p>
 
+<h2>Asking at a moment that makes sense</h2>
+<p>Every call that needs a permission requests it implicitly, so the plugin works with no permission code at all. The cost is that the first scan raises a system dialog out of nowhere, with no explanation of why the app wants it, which is the version users refuse.</p>
+<p>Ask on your own terms instead.</p>
+""" + pre("""
+switch (await bluetooth.checkPermissions()) {
+  case BtcPermissionStatus.granted:
+  case BtcPermissionStatus.notRequired:
+    startScanning();
+
+  case BtcPermissionStatus.denied:
+    // The system will still prompt. Explain why, then ask.
+    if (await bluetooth.requestPermissions() == BtcPermissionStatus.granted) {
+      startScanning();
+    }
+
+  case BtcPermissionStatus.permanentlyDenied:
+    // The system has stopped asking. Only settings can change it.
+    await bluetooth.openAppSettings();
+}
+""") + """
+<p><code>checkPermissions</code> never prompts, so it is safe to call while building a screen.</p>
+
+<h2>The four statuses</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Status</th><th>Meaning</th><th>What to do</th></tr></thead>
+<tbody>
+<tr><td><code>granted</code></td><td>Everything required is held</td><td>Carry on</td></tr>
+<tr><td><code>denied</code></td><td>Not held, but the system will still prompt</td><td>Show a reason, then request</td></tr>
+<tr><td><code>permanentlyDenied</code></td><td>The system has stopped prompting</td><td>Offer <code>openAppSettings</code></td></tr>
+<tr><td><code>notRequired</code></td><td>No runtime permission exists here</td><td>Treat as granted</td></tr>
+</tbody></table></div>
+<p>Only Android and iOS report the first three. Windows, macOS and Linux always report <code>notRequired</code>, because they decide Bluetooth access at build time through a manifest entry, an entitlement or the system's D-Bus policy. Writing against the status rather than against the platform name means one code path covers all five.</p>
+
+<h2>Permanent denial</h2>
+<p>Android reaches <code>permanentlyDenied</code> after a second refusal, or one with "don't ask again" selected. iOS reaches it on any refusal, since it never re-prompts. From there <code>requestPermissions</code> returns immediately without showing anything, so a retry button is a dead end.</p>
+""" + pre("""
+final status = await bluetooth.requestPermissions();
+if (status == BtcPermissionStatus.permanentlyDenied) {
+  await bluetooth.openAppSettings();
+}
+""") + """
+<p><code>openAppSettings</code> backgrounds your app, and the user can come back without having changed anything, so re-check on resume rather than assuming the trip worked.</p>
+""" + pre("""
+@override
+void didChangeAppLifecycleState(AppLifecycleState state) async {
+  if (state != AppLifecycleState.resumed) return;
+  final status = await bluetooth.checkPermissions();
+  if (mounted) setState(() => permission = status);
+}
+""") + """
 <h2>Check before you call</h2>
 <p>Once setup is done, confirm the adapter is actually usable rather than assuming it.</p>
 """ + pre("""
