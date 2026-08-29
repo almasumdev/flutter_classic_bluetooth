@@ -1,14 +1,33 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
   package="com.flutter_classic_bluetooth.flutter_classic_bluetooth">
 
+  <!--
+    These permissions merge into every app that depends on this plugin, and the
+    manifest merger keeps the least restrictive value it finds. An uncapped
+    permission declared here therefore overrides a capped one declared by the
+    app, so anything scoped to old Android has to be scoped here as well.
+  -->
+
   <!-- Legacy (API < 31) -->
   <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
   <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
-  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-  <!-- Android 12+ (API 31+) -->
-  <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+  <!--
+    Discovery needs location only on API 23 to 30. On API 31 and above
+    BLUETOOTH_SCAN covers it, so these stop at 30 and an app targeting Android
+    12 or later does not have to declare or justify a location permission.
+  -->
+  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
+  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" android:maxSdkVersion="30" />
+
+  <!--
+    Android 12+ (API 31+). Bluetooth Classic serial never derives physical
+    location from a scan result, so neverForLocation is accurate and is what
+    lets an app drop the location permission entirely. An app that does derive
+    location from its scans can drop the flag with
+    tools:remove="android:usesPermissionFlags" on its own declaration.
+  -->
+  <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
   <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
   <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
 

@@ -1,3 +1,37 @@
+## 1.0.1
+
+Stop shipping an uncapped location permission into every app, and stop
+discovery crashing or inventing a signal strength on some devices.
+
+### Fixed
+
+- **The plugin's own manifest put an unbounded `ACCESS_COARSE_LOCATION` into
+  every app that depends on it.** Only the plugin declared that permission, so
+  it reached the merged manifest exactly as written, uncapped, even in apps that
+  had carefully scoped their own location permissions to `maxSdkVersion="30"`.
+  An app targeting Android 12 or later was therefore requesting coarse location
+  on every API level and having to answer for it in a Play data safety review.
+  Both location permissions now stop at API 30 in the plugin manifest, and
+  `BLUETOOTH_SCAN` carries `neverForLocation`, which is accurate for Bluetooth
+  Classic serial and lets an app drop location entirely on Android 12 and above.
+- **Discovery reported a missing signal strength as -32768.** `EXTRA_RSSI` is
+  not present on every device, and reading it with a sentinel default passed
+  that sentinel through as a real reading. `BtcDevice.rssi` is documented as
+  nullable and is now actually null when the platform did not report one.
+- **Discovery could take the app down on Android 12 and above.** Reading a
+  device's type, name, bond state, alias or UUIDs needs `BLUETOOTH_CONNECT`, and
+  a permission revoked between a scan starting and a result arriving threw
+  inside a broadcast receiver, where nothing could catch it. Those reads are now
+  guarded, and a device is reported with whatever detail is available rather
+  than crashing or being silently dropped.
+
+### Changed
+
+- Android setup is now nothing to add. The permissions ship in the plugin
+  manifest already scoped correctly, so an app no longer has to copy a block
+  into its own manifest to get the right result. Declaring them yourself still
+  works and still wins.
+
 ## 1.0.0
 
 First stable release. The API is settled, and anything breaking waits for 2.0.0.

@@ -15,14 +15,33 @@ class ScanResultReceiver(private val context: Context) : EventChannel.StreamHand
     override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
         receiver = object : BroadcastReceiver() {
             override fun onReceive(ctx: Context, intent: Intent) {
-                if (intent.action == BluetoothDevice.ACTION_FOUND) {
-                    val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
-                        ?: return
-                    val rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE).toInt()
-                    // Only report Classic or Dual devices, skip BLE-only
-                    if (device.type == BluetoothDevice.DEVICE_TYPE_LE) return
-                    events.success(BluetoothHelper.deviceToMap(device, rssi))
+                if (intent.action != BluetoothDevice.ACTION_FOUND) return
+                val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
+                    ?: return
+
+                // Not every OEM puts EXTRA_RSSI on the broadcast. Reading it
+                // with a sentinel default reported that sentinel as a real
+                // signal strength, so check the extra is actually present and
+                // report null when it is not.
+                val rssi = if (intent.hasExtra(BluetoothDevice.EXTRA_RSSI)) {
+                    intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE)
+                        .toInt()
+                        .takeIf { it != Short.MIN_VALUE.toInt() }
+                } else {
+                    null
                 }
+
+                // device.type needs BLUETOOTH_CONNECT on API 31+, and throws
+                // inside onReceive if it was revoked between the scan starting
+                // and this result arriving, which takes the whole app down.
+                // An unknown type is reported rather than dropped: skipping a
+                // reachable device is worse than listing one extra.
+                val isBleOnly = runCatching {
+                    device.type == BluetoothDevice.DEVICE_TYPE_LE
+                }.getOrDefault(false)
+                if (isBleOnly) return
+
+                events.success(BluetoothHelper.deviceToMap(device, rssi))
             }
         }
         BluetoothHelper.registerExportedReceiver(
@@ -31,7 +50,11 @@ class ScanResultReceiver(private val context: Context) : EventChannel.StreamHand
     }
 
     override fun onCancel(arguments: Any?) {
-        receiver?.let { context.unregisterReceiver(it) }
+        receiver?.let {
+            // Unregistering a receiver that is already gone throws, and there
+            // is nothing useful to do about it here.
+            runCatching { context.unregisterReceiver(it) }
+        }
         receiver = null
     }
 }

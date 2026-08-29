@@ -294,12 +294,13 @@ PAGES.append(dict(
     lede="Bluetooth fails silently without the right declarations. Do this before anything else.",
     body=INSTALL + """
 <h2>Android</h2>
-<p>Android split its Bluetooth permissions at API 31, so a manifest that covers both old and new devices needs both sets. Add these to <code>android/app/src/main/AndroidManifest.xml</code>, inside <code>&lt;manifest&gt;</code> and above <code>&lt;application&gt;</code>.</p>
+<p>Android split its Bluetooth permissions at API 31, so a build that covers both old and new devices needs both sets. You do not have to add them: they ship in the plugin's own manifest and are merged into your app for you, already scoped so an app targeting Android 12 or later requests no location permission at all. This is what gets merged in.</p>
 """ + pre("""
 <!-- Android 11 (API 30) and below -->
 <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
 <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" android:maxSdkVersion="30" />
 
 <!-- Android 12 (API 31) and above -->
 <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
@@ -307,7 +308,8 @@ PAGES.append(dict(
 <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
 """) + """
 <p>Two things trip people up here. On Android 11 and below, <strong>scanning requires location permission</strong>, because a nearby-device list can be used to infer where someone is. And on Android 12 and above, <code>BLUETOOTH_SCAN</code> and <code>BLUETOOTH_CONNECT</code> are runtime permissions, so declaring them is not enough. The plugin requests those for you when you call a method that needs one, or you can <a href="#asking-at-a-moment-that-makes-sense">ask up front</a>.</p>
-<p><code>neverForLocation</code> tells Android you are not using scan results to derive location, which keeps the permission prompt narrower. Drop that flag if you genuinely do.</p>
+<p><code>neverForLocation</code> tells Android you are not using scan results to derive location, which keeps the permission prompt narrower. Bluetooth Classic serial never does, so it is set for you.</p>
+<p>Re-declaring these in your own manifest is unnecessary. If you do declare one, your value is what ends up in the merged manifest, so declare it capped or leave it out. A permission only the plugin declares flows through exactly as the plugin declares it, which is why <code>ACCESS_COARSE_LOCATION</code> used to reach every app uncapped even when the app had scoped its own location permission correctly. If your app genuinely does derive location from scans, drop the flag on your own declaration with <code>tools:remove="android:usesPermissionFlags"</code>.</p>
 
 <h2>iOS</h2>
 <p>iOS only reaches <strong>MFi certified accessories</strong>, and only ones whose protocol string you declare up front. Add to <code>ios/Runner/Info.plist</code>:</p>

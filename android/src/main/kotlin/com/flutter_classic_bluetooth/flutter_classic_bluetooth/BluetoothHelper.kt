@@ -64,16 +64,24 @@ object BluetoothHelper {
 
     @Suppress("MissingPermission")
     fun deviceToMap(device: BluetoothDevice, rssi: Int? = null): Map<String, Any?> {
+        // Every property below except the address needs BLUETOOTH_CONNECT on
+        // API 31+. This runs on a broadcast receiver during discovery, so a
+        // permission revoked mid-scan would otherwise throw where there is no
+        // caller to catch it and take the whole app down. A device reported
+        // with missing detail beats a crash, and beats dropping it entirely.
         val map = mutableMapOf<String, Any?>(
             "address" to device.address,
-            "name" to device.name,
-            "type" to deviceTypeToString(device),
-            "bondState" to bondStateToString(device.bondState),
+            "name" to runCatching { device.name }.getOrNull(),
+            "type" to runCatching { deviceTypeToString(device) }.getOrDefault("unknown"),
+            "bondState" to runCatching { bondStateToString(device.bondState) }
+                .getOrDefault("none"),
             "rssi" to rssi,
-            "uuids" to (device.uuids?.map { it.uuid.toString() } ?: emptyList<String>()),
+            "uuids" to runCatching {
+                device.uuids?.map { it.uuid.toString() } ?: emptyList<String>()
+            }.getOrDefault(emptyList<String>()),
         )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            map["alias"] = device.alias
+            map["alias"] = runCatching { device.alias }.getOrNull()
         }
         return map
     }

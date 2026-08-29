@@ -239,17 +239,34 @@ import 'package:flutter_classic_bluetooth/flutter_classic_bluetooth.dart';
 
 ## Platform setup
 
-**Android**: add the Bluetooth permissions to `android/app/src/main/AndroidManifest.xml`:
+**Android**: nothing to add. These permissions ship in the plugin's own manifest
+and are merged in for you, already scoped so that an app targeting Android 12 or
+later does not request a location permission at all:
 
 ```xml
 <!-- Android 11 (API 30) and below -->
 <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
 <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" android:maxSdkVersion="30" />
 <!-- Android 12 (API 31) and above -->
 <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
 <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+```
+
+Declaring these again in your own manifest is unnecessary. If you do declare one,
+your value is what ends up in the merged manifest, so declare it capped or leave
+it out. A permission only the plugin declares flows through exactly as the plugin
+declares it, which is why `ACCESS_COARSE_LOCATION` used to reach every app
+uncapped even when the app had scoped its own location permission correctly.
+
+If your app genuinely does derive physical location from Bluetooth scans, drop
+the `neverForLocation` flag on your own declaration:
+
+```xml
+<uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+    tools:remove="android:usesPermissionFlags" />
 ```
 
 **iOS**: declare the MFi protocol(s) and a usage string in `ios/Runner/Info.plist`:
