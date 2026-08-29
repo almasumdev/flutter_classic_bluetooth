@@ -37,3 +37,8 @@ doc/plan.md
 # published archive.
 site/
 tool/
+
+# Hosting config and internal notes: repo-only, never part of the package.
+firebase.json
+.firebaserc
+.claude/

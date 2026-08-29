@@ -1406,4 +1406,37 @@ for proof in glob.glob("tool/docs_assets/google*.html"):
 io.open(os.path.join(OUT, INDEXNOW_KEY + ".txt"), "w", encoding="utf-8",
         newline="\n").write(INDEXNOW_KEY + "\n")
 
+# Keep firebase.json's clean-URL rewrites in step with the pages that exist.
+# These were hand-maintained, so a new page could ship and then 404 in
+# production because nobody remembered to add its rewrite.
+def _sync_firebase_rewrites(page_slugs):
+    fb_path = "firebase.json"
+    if not os.path.exists(fb_path):
+        return
+    conf = json.load(io.open(fb_path, encoding="utf-8"))
+    hosting = conf.get("hosting")
+    targets = hosting if isinstance(hosting, list) else [hosting]
+    # Match on the output directory, not on position: a repo may also host
+    # an example web app, and that target has its own single rewrite.
+    docs = [t for t in targets if t and t.get("public") == OUT]
+    if len(docs) != 1:
+        print("firebase.json: no single hosting target for %r, skipped" % OUT)
+        return
+    target = docs[0]
+    wanted = [
+        {"source": "/" + p, "destination": "/" + p + ".html"}
+        for p in page_slugs if p != "index"
+    ]
+    if target.get("rewrites") == wanted:
+        print("firebase.json rewrites already current (%d)" % len(wanted))
+        return
+    target["rewrites"] = wanted
+    io.open(fb_path, "w", encoding="utf-8", newline="\n").write(
+        json.dumps(conf, indent=2, ensure_ascii=False) + '\n'
+    )
+    print("firebase.json rewrites synced (%d)" % len(wanted))
+
+
+_sync_firebase_rewrites(slugs)
+
 print("wrote sitemap.xml (%d urls), robots.txt, logo.svg" % len(slugs))

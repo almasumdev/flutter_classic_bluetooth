@@ -137,6 +137,51 @@ jobs:
             echo "::error::pana $POINTS/$MAX is below the required 140, aborting."; exit 1
           fi
 
+  deploy-docs:
+    name: Deploy documentation site
+    needs: checks
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      # The generator is deterministic, so a rebuild that changes anything
+      # means the committed site was not regenerated after a source edit.
+      # Catching that here is what stops a page shipping without its rewrite.
+      - name: Rebuild the site and check it matches what is committed
+        run: |
+          python tool/build_docs.py
+          if ! git diff --quiet -- site firebase.json; then
+            echo "::error::site/ or firebase.json is stale. Run 'python tool/build_docs.py' and commit the result."
+            git --no-pager diff --stat -- site firebase.json
+            exit 1
+          fi
+
+      - name: Deploy to Firebase Hosting
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "::warning::FIREBASE_SERVICE_ACCOUNT is not set for this repository, so the documentation site was built and verified but not published. Add the secret to enable deploys."
+            exit 0
+          fi
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-sa.json"
+          set +e
+          out=$(npx --yes firebase-tools@latest deploy \
+            --only hosting:flutter-classic-bluetooth --project my-pub-packages --non-interactive 2>&1)
+          code=$?
+          printf '%s\n' "$out"
+          if [ "$code" -ne 0 ] && printf '%s' "$out" | grep -q "is the current active version"; then
+            echo "Site already serves this build; treating as success."
+            exit 0
+          fi
+          exit "$code"
+
   version:
     name: Resolve version
     needs: [pana, native]
