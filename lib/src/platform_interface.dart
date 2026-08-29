@@ -18,6 +18,8 @@ import 'models/btc_platform_capabilities.dart';
 ///
 /// {@category Platform}
 abstract class FlutterClassicBluetoothPlatform extends PlatformInterface {
+  /// Constructs a platform implementation, verifying it extends this class
+  /// rather than implementing it, so new members can be added without a break.
   FlutterClassicBluetoothPlatform() : super(token: _token);
 
   static final Object _token = Object();
