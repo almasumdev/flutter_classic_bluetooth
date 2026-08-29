@@ -224,6 +224,7 @@ and run it, or copy any snippet from [Getting started](#getting-started) below.
 - [Source code on GitHub](https://github.com/almasumdev/flutter_classic_bluetooth)
 - [Changelog](https://github.com/almasumdev/flutter_classic_bluetooth/blob/main/CHANGELOG.md)
 - [Issue tracker](https://github.com/almasumdev/flutter_classic_bluetooth/issues)
+- [Contributing](https://github.com/almasumdev/flutter_classic_bluetooth/blob/main/CONTRIBUTING.md)
 
 ## Installation
 
