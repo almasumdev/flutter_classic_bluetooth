@@ -14,6 +14,12 @@ analyzer:
     # Optional live-hardware harness (gitignored, not shipped). Uses print()
     # for manual ESP32 bring-up logging.
     - integration_test/esp32_live_test.dart
+    - build/**
+    - android/**
+    - ios/**
+    - windows/**
+    - macos/**
+    - linux/**
 
 linter:
   # The lint rules applied to this project can be customized in the
