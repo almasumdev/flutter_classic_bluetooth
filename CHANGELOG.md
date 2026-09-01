@@ -1,3 +1,26 @@
+## 1.1.0
+
+Say why a connection failed.
+
+### New
+
+- `BtcConnectionException.cause` reports why `connect()` failed, as a
+  `BtcConnectFailure`: `adapterOff`, `notPaired`, `permissionDenied`,
+  `unreachable`, `serviceNotSupported`, `busy`, `timeout` or `unknown`. A bare
+  "connection failed" is the most reported complaint against Bluetooth Classic
+  plugins, because the caller cannot tell a device that is switched off from one
+  that was never paired from a refused permission.
+- `BtcConnectFailure.description` is a short sentence safe to show a user, and
+  `isRetryable` marks the three transient causes so retry logic does not have to
+  hard-code the list.
+- `toString()` now names the cause, so a bare log line is useful on its own.
+
+Android classifies the failure. It reports nearly everything as a plain
+IOException, so the adapter and bond state are checked before the message is
+consulted. Classification runs only on the failure path, so it cannot affect a
+successful connect. The other platforms report `unknown` until they classify
+too; treat `unknown` as "no information", not as "no cause".
+
 ## 1.0.1
 
 Stop shipping an uncapped location permission into every app, and stop

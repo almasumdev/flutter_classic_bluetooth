@@ -315,7 +315,7 @@ class FlutterClassicBluetoothPlugin :
                     if (device == null) {
                         mainHandler.post {
                             result.error("connectionFailed", "Device not found: $address",
-                                mapOf("address" to address))
+                                mapOf("address" to address, "cause" to "unreachable"))
                         }
                         return@Thread
                     }
@@ -354,14 +354,16 @@ class FlutterClassicBluetoothPlugin :
                         result.success(mapOf("id" to connId, "address" to address))
                     }
                 } catch (e: IOException) {
+                    val cause = classifyConnectFailure(e, address)
                     mainHandler.post {
                         result.error("connectionFailed", "Connection failed: ${e.message}",
-                            mapOf("address" to address))
+                            mapOf("address" to address, "cause" to cause))
                     }
                 } catch (e: Exception) {
+                    val cause = classifyConnectFailure(e, address)
                     mainHandler.post {
                         result.error("connectionFailed", "Connection failed: ${e.message}",
-                            mapOf("address" to address))
+                            mapOf("address" to address, "cause" to cause))
                     }
                 }
             }.apply {
@@ -527,4 +529,43 @@ class FlutterClassicBluetoothPlugin :
             servers.clear()
         }
     }
+
+    /// Works out why a connect attempt failed, so Dart can say something more
+    /// useful than "connection failed".
+    ///
+    /// Runs only on the failure path, so it cannot affect a successful connect.
+    /// Android reports nearly everything as a bare IOException, so the adapter
+    /// and bond state carry more signal than the exception type does; they are
+    /// checked first and the message is only a last resort.
+    @Suppress("MissingPermission")
+    private fun classifyConnectFailure(e: Throwable, address: String): String {
+        if (e is SecurityException) return "permissionDenied"
+
+        val adapterState = runCatching { adapter?.isEnabled == true }.getOrNull()
+        if (adapterState == false) return "adapterOff"
+
+        val bonded = runCatching {
+            adapter?.getRemoteDevice(address)?.bondState
+        }.getOrNull()
+        if (bonded != null && bonded != BluetoothDevice.BOND_BONDED) {
+            return "notPaired"
+        }
+
+        val msg = e.message?.lowercase().orEmpty()
+        return when {
+            // The stack says the peer refused or never answered the RFCOMM
+            // channel. This is the common "device is off or out of range" case.
+            msg.contains("read failed") ||
+                msg.contains("socket might closed") ||
+                msg.contains("connection refused") ||
+                msg.contains("host is down") ||
+                msg.contains("broken pipe") -> "unreachable"
+            msg.contains("service discovery failed") ||
+                msg.contains("no such service") -> "serviceNotSupported"
+            msg.contains("busy") || msg.contains("already connected") -> "busy"
+            msg.contains("timeout") || msg.contains("timed out") -> "timeout"
+            else -> "unknown"
+        }
+    }
+
 }

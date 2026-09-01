@@ -679,3 +679,25 @@ flutter_classic_bluetooth grows with its community, and every contributor is lis
 </a>
 
 Want to help? Pull requests are welcome; see [Support and feedback](#support-and-feedback).
+
+## Why a connection failed
+
+`connect()` throws `BtcConnectionException` with a `cause`, so you can tell a
+device that is switched off from one that was never paired:
+
+```dart
+try {
+  final conn = await FlutterClassicBluetooth().connect(address: address);
+} on BtcConnectionException catch (e) {
+  if (e.cause.isRetryable) {
+    // unreachable, busy or timeout: worth another go
+  }
+  showMessage(e.cause.description); // "The device is not paired. Pair it first."
+}
+```
+
+`BtcConnectFailure` covers `adapterOff`, `notPaired`, `permissionDenied`,
+`unreachable`, `serviceNotSupported`, `busy`, `timeout` and `unknown`. Android
+classifies today; other platforms report `unknown` until they do, so treat
+`unknown` as "no information" rather than "no cause".
+

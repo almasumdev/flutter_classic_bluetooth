@@ -95,11 +95,85 @@ class BtcConnectionException extends BtcException {
   /// The address of the device that failed to connect.
   final String? address;
 
+  /// Why the connection failed, as far as the platform could tell.
+  ///
+  /// "Connection failed" on its own is the single most reported complaint
+  /// against Bluetooth Classic plugins, because the caller cannot tell a device
+  /// that is switched off from one that was never paired from a missing
+  /// permission. Check this before showing the user anything.
+  ///
+  /// Reported on Android. Other platforms report
+  /// [BtcConnectFailure.unknown] until they classify too, so treat `unknown`
+  /// as "no information", not as "no cause".
+  final BtcConnectFailure cause;
+
   /// Creates a [BtcConnectionException] with a [message] and optional [address].
   const BtcConnectionException(
     super.message, {
     this.address,
+    this.cause = BtcConnectFailure.unknown,
   }) : super(code: 'connectionFailed');
+
+  @override
+  String toString() =>
+      'BtcConnectionException($cause): $message'
+      '${address == null ? '' : ' [$address]'}';
+}
+
+/// Why a connection attempt failed.
+///
+/// {@category Exceptions}
+enum BtcConnectFailure {
+  /// The platform gave no usable reason, or does not classify yet.
+  unknown,
+
+  /// The Bluetooth adapter is switched off.
+  adapterOff,
+
+  /// The device is not paired. Bluetooth Classic requires pairing first on
+  /// most platforms; call `pair()` before connecting.
+  notPaired,
+
+  /// A required runtime permission was refused.
+  permissionDenied,
+
+  /// The device did not answer: switched off, out of range, or asleep.
+  ///
+  /// This is the one worth retrying.
+  unreachable,
+
+  /// The device answered but does not offer the requested service. Usually the
+  /// wrong UUID, or a device that speaks BLE rather than Classic serial.
+  serviceNotSupported,
+
+  /// The device is already connected to something else, or another connection
+  /// attempt is in flight.
+  busy,
+
+  /// The attempt exceeded the timeout it was given.
+  timeout;
+
+  /// A short, user-safe sentence explaining this cause.
+  String get description => switch (this) {
+    BtcConnectFailure.unknown => 'The connection failed for an unknown reason.',
+    BtcConnectFailure.adapterOff => 'Bluetooth is turned off.',
+    BtcConnectFailure.notPaired =>
+      'The device is not paired. Pair it before connecting.',
+    BtcConnectFailure.permissionDenied =>
+      'Bluetooth permission was refused.',
+    BtcConnectFailure.unreachable =>
+      'The device did not respond. It may be switched off or out of range.',
+    BtcConnectFailure.serviceNotSupported =>
+      'The device does not offer the requested serial service.',
+    BtcConnectFailure.busy => 'The device is already in use.',
+    BtcConnectFailure.timeout => 'The connection attempt timed out.',
+  };
+
+  /// Whether retrying the same call could plausibly succeed.
+  bool get isRetryable =>
+      this == BtcConnectFailure.unreachable ||
+      this == BtcConnectFailure.busy ||
+      this == BtcConnectFailure.timeout;
 }
 
 /// Thrown when a write operation to a connected device fails.
