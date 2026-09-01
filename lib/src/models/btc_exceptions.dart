@@ -115,8 +115,7 @@ class BtcConnectionException extends BtcException {
   }) : super(code: 'connectionFailed');
 
   @override
-  String toString() =>
-      'BtcConnectionException($cause): $message'
+  String toString() => 'BtcConnectionException($cause): $message'
       '${address == null ? '' : ' [$address]'}';
 }
 
@@ -155,19 +154,20 @@ enum BtcConnectFailure {
 
   /// A short, user-safe sentence explaining this cause.
   String get description => switch (this) {
-    BtcConnectFailure.unknown => 'The connection failed for an unknown reason.',
-    BtcConnectFailure.adapterOff => 'Bluetooth is turned off.',
-    BtcConnectFailure.notPaired =>
-      'The device is not paired. Pair it before connecting.',
-    BtcConnectFailure.permissionDenied =>
-      'Bluetooth permission was refused.',
-    BtcConnectFailure.unreachable =>
-      'The device did not respond. It may be switched off or out of range.',
-    BtcConnectFailure.serviceNotSupported =>
-      'The device does not offer the requested serial service.',
-    BtcConnectFailure.busy => 'The device is already in use.',
-    BtcConnectFailure.timeout => 'The connection attempt timed out.',
-  };
+        BtcConnectFailure.unknown =>
+          'The connection failed for an unknown reason.',
+        BtcConnectFailure.adapterOff => 'Bluetooth is turned off.',
+        BtcConnectFailure.notPaired =>
+          'The device is not paired. Pair it before connecting.',
+        BtcConnectFailure.permissionDenied =>
+          'Bluetooth permission was refused.',
+        BtcConnectFailure.unreachable =>
+          'The device did not respond. It may be switched off or out of range.',
+        BtcConnectFailure.serviceNotSupported =>
+          'The device does not offer the requested serial service.',
+        BtcConnectFailure.busy => 'The device is already in use.',
+        BtcConnectFailure.timeout => 'The connection attempt timed out.',
+      };
 
   /// Whether retrying the same call could plausibly succeed.
   bool get isRetryable =>

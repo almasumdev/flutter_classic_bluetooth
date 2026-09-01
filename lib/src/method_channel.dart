@@ -314,15 +314,15 @@ class MethodChannelFlutterClassicBluetooth
   /// An unrecognised or absent tag reads as [BtcConnectFailure.unknown], so a
   /// platform that does not classify yet degrades rather than throwing.
   static BtcConnectFailure _connectFailureFrom(String? tag) => switch (tag) {
-    'adapterOff' => BtcConnectFailure.adapterOff,
-    'notPaired' => BtcConnectFailure.notPaired,
-    'permissionDenied' => BtcConnectFailure.permissionDenied,
-    'unreachable' => BtcConnectFailure.unreachable,
-    'serviceNotSupported' => BtcConnectFailure.serviceNotSupported,
-    'busy' => BtcConnectFailure.busy,
-    'timeout' => BtcConnectFailure.timeout,
-    _ => BtcConnectFailure.unknown,
-  };
+        'adapterOff' => BtcConnectFailure.adapterOff,
+        'notPaired' => BtcConnectFailure.notPaired,
+        'permissionDenied' => BtcConnectFailure.permissionDenied,
+        'unreachable' => BtcConnectFailure.unreachable,
+        'serviceNotSupported' => BtcConnectFailure.serviceNotSupported,
+        'busy' => BtcConnectFailure.busy,
+        'timeout' => BtcConnectFailure.timeout,
+        _ => BtcConnectFailure.unknown,
+      };
 
   /// Converts a [PlatformException] to a typed [BtcException].
   BtcException _convertException(PlatformException e) {
