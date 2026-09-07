@@ -696,6 +696,20 @@ try {
 }
 ```
 
+Or let the package do the retrying, which only repeats the causes worth
+repeating:
+
+```dart
+final conn = await FlutterClassicBluetooth().connectWithRetry(
+  address: address,
+  timeout: const Duration(seconds: 8),
+);
+```
+
+`unreachable`, `busy` and `timeout` get another attempt with doubling backoff.
+`notPaired`, `adapterOff` and `permissionDenied` throw at once, because waiting
+will not fix them and the user needs that message now.
+
 `BtcConnectFailure` covers `adapterOff`, `notPaired`, `permissionDenied`,
 `unreachable`, `serviceNotSupported`, `busy`, `timeout` and `unknown`. Android
 classifies today; other platforms report `unknown` until they do, so treat

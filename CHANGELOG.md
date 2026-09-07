@@ -1,3 +1,25 @@
+## 1.2.0
+
+Retry a connection, but only when retrying can work.
+
+### New
+
+- `connectWithRetry` repeats a failed connect while the cause is transient and
+  gives up immediately when it is not. A first connect to a Classic device
+  fails often and for reasons that need opposite handling: a device asleep or
+  briefly out of range usually answers on the second attempt, while one that was
+  never paired will refuse forever. Retrying blindly makes that second case
+  slower without making it work, and delays the message the user needs.
+- `unreachable`, `busy` and `timeout` are retried with backoff doubling from
+  `initialBackoff`. `notPaired`, `adapterOff`, `permissionDenied` and
+  `serviceNotSupported` throw on the first attempt.
+- `maxAttempts` counts the first try, so the default of 3 allows two retries.
+  The exception from the final attempt propagates, so the caller still sees a
+  real cause rather than a summary. `timeout` applies per attempt.
+
+The connect fallback ladder itself is still not in this release. It changes the
+path a working connection takes, and validating that needs real hardware.
+
 ## 1.1.0
 
 Say why a connection failed.

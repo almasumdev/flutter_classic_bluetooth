@@ -461,6 +461,69 @@ class FlutterClassicBluetooth {
     );
   }
 
+  /// Connects to [address], retrying only the failures worth retrying.
+  ///
+  /// A first connect to a Bluetooth Classic device fails often, and for reasons
+  /// that need opposite handling: a device asleep or briefly out of range
+  /// usually answers on the second attempt, while one that was never paired
+  /// will refuse forever. Retrying blindly makes the second case slower without
+  /// making it work, and delays the message the user actually needs.
+  ///
+  /// So this retries only when [BtcConnectFailure.isRetryable] says the cause
+  /// is transient (`unreachable`, `busy`, `timeout`), and rethrows everything
+  /// else immediately. Backoff doubles from [initialBackoff] between attempts.
+  ///
+  /// ```dart
+  /// final conn = await FlutterClassicBluetooth().connectWithRetry(
+  ///   address: address,
+  ///   timeout: const Duration(seconds: 8),
+  /// );
+  /// ```
+  ///
+  /// [maxAttempts] counts the first try, so the default of 3 allows at most two
+  /// retries. The exception from the final attempt is the one that propagates,
+  /// so the caller still sees a real cause rather than a summary. Every other
+  /// argument behaves as it does on [connect], including [timeout], which
+  /// applies per attempt rather than across the whole sequence.
+  ///
+  /// Throws [ArgumentError] if [maxAttempts] is less than 1.
+  Future<BtcConnection> connectWithRetry({
+    required String address,
+    String uuid = BtcUuid.spp,
+    bool secure = true,
+    Duration? timeout,
+    int maxAttempts = 3,
+    Duration initialBackoff = const Duration(milliseconds: 300),
+  }) async {
+    if (maxAttempts < 1) {
+      throw ArgumentError.value(
+        maxAttempts,
+        'maxAttempts',
+        'must be at least 1',
+      );
+    }
+
+    var backoff = initialBackoff;
+    for (var attempt = 1;; attempt++) {
+      try {
+        return await connect(
+          address: address,
+          uuid: uuid,
+          secure: secure,
+          timeout: timeout,
+        );
+      } on BtcConnectionException catch (e) {
+        // Out of attempts, or a cause no amount of waiting will fix.
+        if (attempt >= maxAttempts || !e.cause.isRetryable) rethrow;
+      } on BtcTimeoutException {
+        // A per-attempt timeout is the transient case by definition.
+        if (attempt >= maxAttempts) rethrow;
+      }
+      await Future<void>.delayed(backoff);
+      backoff *= 2;
+    }
+  }
+
   /// Disconnects the connection with the given [id].
   ///
   /// Prefer using [BtcConnection.close] or [BtcConnection.finish]
