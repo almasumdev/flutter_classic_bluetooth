@@ -363,8 +363,20 @@ class EASessionWrapper: NSObject, StreamDelegate {
     func write(data: Data) -> Bool {
         guard let outputStream = session.outputStream else { return false }
         let bytes = [UInt8](data)
-        let written = outputStream.write(bytes, maxLength: bytes.count)
-        return written == bytes.count
+        // A stream write may accept fewer bytes than it was offered. Returning
+        // false on a short write reported failure after part of the message
+        // had already gone out, leaving the accessory mid-frame, so keep
+        // writing from where it stopped until the payload is gone.
+        var offset = 0
+        while offset < bytes.count {
+            let written = bytes[offset...].withUnsafeBufferPointer { buf -> Int in
+                guard let base = buf.baseAddress else { return -1 }
+                return outputStream.write(base, maxLength: buf.count)
+            }
+            if written <= 0 { return false }
+            offset += written
+        }
+        return true
     }
 
     func close() {

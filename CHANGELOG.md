@@ -1,3 +1,33 @@
+## 1.3.0
+
+Large and partial writes no longer lose data, and a write over 64 KB no longer
+crashes on macOS.
+
+### Fixed
+
+- **macOS crashed on any write larger than 65535 bytes.** The length was passed
+  as `UInt16(count)`, and that conversion traps in Swift rather than truncating,
+  so the app went down. Writes are now chunked to the channel's own MTU and each
+  chunk is length-checked before the conversion, so it cannot trap.
+- **macOS reported a write as successful before the bytes were on the wire.**
+  `writeAsync` returns once the write is queued, and its result was used as the
+  outcome. Chunks are now written synchronously, in order, on a background
+  queue, with the completion hopping back to the platform thread, so success
+  means the data actually went and the platform thread is still not blocked.
+- **Windows silently dropped the tail of a payload.** `send` may accept fewer
+  bytes than it was given, and only `SOCKET_ERROR` was treated as failure, so a
+  short send was reported as a complete write. It now loops until every byte is
+  gone.
+- **Linux and iOS reported failure after a partial write.** Both compared the
+  accepted count against the payload length and returned false without sending
+  the rest, leaving the peer mid-frame. Both now finish the write. Linux also
+  retries on `EINTR`, which is an interruption rather than a failure.
+
+These are native fixes. Android and Windows were built locally and every
+platform is compiled in CI, but none of them has been exercised against real
+hardware, so treat this release as worth testing against your own device before
+you depend on it.
+
 ## 1.2.0
 
 Retry a connection, but only when retrying can work.

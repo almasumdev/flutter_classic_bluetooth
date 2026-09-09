@@ -32,9 +32,18 @@ void BluetoothConnection::StartReading(
 
 bool BluetoothConnection::Write(const std::vector<uint8_t>& data) {
   if (!connected_.load()) return false;
-  int sent = send(socket_, reinterpret_cast<const char*>(data.data()),
-                  static_cast<int>(data.size()), 0);
-  return sent != SOCKET_ERROR;
+  // send() may accept fewer bytes than it was given, especially once the
+  // peer's window fills. Reporting success on a short send silently dropped
+  // the tail of the payload, so keep going until it is all gone.
+  const char* p = reinterpret_cast<const char*>(data.data());
+  size_t remaining = data.size();
+  while (remaining > 0) {
+    int sent = send(socket_, p, static_cast<int>(remaining), 0);
+    if (sent == SOCKET_ERROR || sent <= 0) return false;
+    p += sent;
+    remaining -= static_cast<size_t>(sent);
+  }
+  return true;
 }
 
 void BluetoothConnection::Close() {

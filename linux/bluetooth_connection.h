@@ -1,6 +1,7 @@
 #ifndef BLUETOOTH_CONNECTION_H_
 #define BLUETOOTH_CONNECTION_H_
 
+#include <cerrno>
 #include <flutter_linux/flutter_linux.h>
 #include <string>
 #include <vector>
@@ -46,8 +47,22 @@ public:
     bool Write(const std::vector<uint8_t>& data) {
         int fd = socket_.load();
         if (fd < 0) return false;
-        ssize_t sent = write(fd, data.data(), data.size());
-        return sent == static_cast<ssize_t>(data.size());
+        // write() may accept fewer bytes than it was given. Returning false on
+        // a short write reported failure after part of the message had already
+        // gone out, leaving the peer mid-frame, so finish the job instead.
+        const uint8_t* p = data.data();
+        size_t remaining = data.size();
+        while (remaining > 0) {
+            ssize_t sent = write(fd, p, remaining);
+            if (sent < 0) {
+                if (errno == EINTR) continue;  // interrupted, not failed
+                return false;
+            }
+            if (sent == 0) return false;
+            p += sent;
+            remaining -= static_cast<size_t>(sent);
+        }
+        return true;
     }
 
     void Close() {

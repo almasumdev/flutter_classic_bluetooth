@@ -530,12 +530,45 @@ class BluetoothConnectionWrapper: NSObject, IOBluetoothRFCOMMChannelDelegate {
 
     func write(data: Data, completion: @escaping (Bool) -> Void) {
         guard let channel = channel else { completion(false); return }
-        var mutableData = [UInt8](data)
-        // Async write so the platform thread is not blocked. The delegate's
-        // rfcommChannelWriteComplete reports the final status.
-        let result = channel.writeAsync(&mutableData, length: UInt16(mutableData.count), refcon: nil)
-        completion(result == kIOReturnSuccess)
+
+        // Two problems lived in the old one-shot call. UInt16(count) traps in
+        // Swift rather than truncating, so any write over 65535 bytes crashed
+        // the app outright. And the channel has its own MTU well under that,
+        // so even a smaller oversized write was not safe to hand over whole.
+        //
+        // Chunk to the channel's MTU and send the pieces in order. Each piece
+        // is length-checked before the UInt16 conversion, so the conversion
+        // can no longer trap.
+        let mtu = Int(channel.getMTU())
+        let chunkSize = mtu > 0 ? min(mtu, Int(UInt16.max)) : 1024
+        let bytes = [UInt8](data)
+        if bytes.isEmpty { completion(true); return }
+
+        // handleWrite runs on the platform thread, so the blocking writeSync
+        // loop goes to a background queue and the completion hops back. Sync
+        // is what makes the chunks arrive in order; writeAsync returned before
+        // the bytes were on the wire, so success was reported too early.
+        Self.writeQueue.async {
+            var offset = 0
+            var ok = true
+            while offset < bytes.count {
+                let end = min(offset + chunkSize, bytes.count)
+                var chunk = Array(bytes[offset..<end])
+                if channel.writeSync(&chunk, length: UInt16(chunk.count))
+                    != kIOReturnSuccess {
+                    ok = false
+                    break
+                }
+                offset = end
+            }
+            DispatchQueue.main.async { completion(ok) }
+        }
     }
+
+    /// Serial, so chunks of one payload and successive payloads stay ordered.
+    private static let writeQueue = DispatchQueue(
+        label: "flutter_classic_bluetooth.write"
+    )
 
     func close() {
         channel?.close()
