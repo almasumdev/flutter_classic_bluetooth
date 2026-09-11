@@ -25,10 +25,7 @@ class BtcStreamSink {
   bool _closed = false;
 
   /// Creates a [BtcStreamSink] for the given [connectionId].
-  BtcStreamSink({
-    required this.connectionId,
-    required MethodChannel methodChannel,
-  }) : _methodChannel = methodChannel;
+  BtcStreamSink({required this.connectionId, required this._methodChannel});
 
   /// Whether this sink has been closed.
   bool get isClosed => _closed;

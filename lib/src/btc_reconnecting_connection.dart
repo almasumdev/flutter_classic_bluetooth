@@ -36,11 +36,11 @@ class BtcReconnectingConnection {
   /// and starts it for you.
   BtcReconnectingConnection({
     required this.address,
-    required Future<BtcConnection> Function() connector,
+    required this._connector,
     this.uuid = BtcUuid.spp,
     this.secure = true,
     this.policy = const BtcReconnectPolicy(),
-  }) : _connector = connector;
+  });
 
   /// The remote device address this link targets.
   final String address;

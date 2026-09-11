@@ -14,7 +14,7 @@ void _failConnectWith(String? cause, {String message = 'Connection failed'}) {
             message: message,
             details: <String, dynamic>{
               'address': 'AA:BB:CC:DD:EE:FF',
-              if (cause != null) 'cause': cause,
+              'cause': ?cause,
             },
           );
         },

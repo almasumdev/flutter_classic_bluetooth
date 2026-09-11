@@ -56,8 +56,8 @@ class BtcServerSocket {
     required this.id,
     required this.uuid,
     required this.serviceName,
-    required MethodChannel methodChannel,
-  }) : _methodChannel = methodChannel {
+    required this._methodChannel,
+  }) {
     _serverChannel = EventChannel('flutter_classic_bluetooth/server/$id');
 
     _connectionsStream = _serverChannel.receiveBroadcastStream().map((event) {

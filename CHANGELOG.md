@@ -25,6 +25,11 @@ Migrates to built-in Kotlin, so the plugin builds under AGP 9.
 - The example app moves to AGP 9.0.1, Gradle 9.1.0 and Kotlin 2.3.20 with
   `android.builtInKotlin=true`, which is the configuration this release is
   validated against.
+- The Dart 3.12 language version turns on lints the old constraint did not, so
+  four constructors now take initializing formals and one test uses a
+  null-aware element. Callers are unaffected: an initializing formal for a
+  private field keeps its public name at the call site, so `methodChannel:` and
+  `connector:` are still spelled the same way.
 
 ### Notes
 
@@ -34,8 +39,10 @@ plugin's own `android/build.gradle.kts`; with this release it builds. The
 previous setup, AGP 8.11.1 with built-in Kotlin off, still builds too, so the
 change is not a one-way door for apps that have not moved to AGP 9 yet.
 
-There is no change to any Dart, Kotlin, Swift or C++ source in this release. It
-is a build configuration fix only.
+No behaviour changed in this release. Beyond the build files, the only Dart
+edits are the lint cleanups listed above, which are signature-compatible, and a
+reformat that the new language version asks for. No Kotlin, Swift or C++ source
+changed at all.
 
 ## 1.3.0
 

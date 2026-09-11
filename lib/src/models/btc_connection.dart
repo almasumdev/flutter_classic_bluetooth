@@ -63,8 +63,8 @@ class BtcConnection {
   BtcConnection({
     required this.id,
     required this.address,
-    required MethodChannel methodChannel,
-  }) : _methodChannel = methodChannel {
+    required this._methodChannel,
+  }) {
     _dataChannel = EventChannel('flutter_classic_bluetooth/connection/$id');
     _stateChannel = EventChannel(
       'flutter_classic_bluetooth/connection_state/$id',
