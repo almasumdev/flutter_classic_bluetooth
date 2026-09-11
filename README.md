@@ -232,6 +232,10 @@ and run it, or copy any snippet from [Getting started](#getting-started) below.
 flutter pub add flutter_classic_bluetooth
 ```
 
+Needs Flutter 3.44 or newer. The plugin uses Android's built-in Kotlin support,
+which AGP 9 requires and which Flutter only guarantees from 3.44. On an older
+Flutter, `pub add` resolves to 1.3.0 instead.
+
 Then import it:
 
 ```dart

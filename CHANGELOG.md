@@ -1,3 +1,42 @@
+## 1.4.0
+
+Migrates to built-in Kotlin, so the plugin builds under AGP 9.
+
+### Fixed
+
+- **The plugin applied the Kotlin Gradle Plugin itself**, which AGP 9 refuses.
+  Apps on AGP 9 saw "Your app uses the following plugins that apply Kotlin
+  Gradle Plugin (KGP): flutter_classic_bluetooth", and with built-in Kotlin
+  turned on the build failed outright rather than warning. `id("kotlin-android")`
+  is gone from the plugin's `plugins` block, the `kotlinOptions` block is gone
+  from `android {}`, and the JVM target now comes from a top-level
+  `kotlin { compilerOptions { jvmTarget = JvmTarget.JVM_17 } }`. Thanks to
+  @xbeaufils for the report.
+- The plugin's `android/settings.gradle.kts` held Groovy syntax, which is not
+  valid Kotlin, and sat next to a duplicate `android/settings.gradle`. There is
+  now one settings file and it parses.
+
+### Changed
+
+- **Minimum SDK is now Flutter 3.44 / Dart 3.12.** `kotlin.compilerOptions`
+  needs KGP 2.0, and Flutter only guarantees that from 3.44. Nothing in the Dart
+  API changed, so if you are pinned below 3.44, staying on 1.3.0 costs you
+  nothing but this build fix.
+- The example app moves to AGP 9.0.1, Gradle 9.1.0 and Kotlin 2.3.20 with
+  `android.builtInKotlin=true`, which is the configuration this release is
+  validated against.
+
+### Notes
+
+Verified both ways round on a real build rather than by reading. With the old
+build script, AGP 9.0.1 and built-in Kotlin fail the example build and name the
+plugin's own `android/build.gradle.kts`; with this release it builds. The
+previous setup, AGP 8.11.1 with built-in Kotlin off, still builds too, so the
+change is not a one-way door for apps that have not moved to AGP 9 yet.
+
+There is no change to any Dart, Kotlin, Swift or C++ source in this release. It
+is a build configuration fix only.
+
 ## 1.3.0
 
 Large and partial writes no longer lose data, and a write over 64 KB no longer

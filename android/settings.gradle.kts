@@ -1,1 +1,1 @@
-rootProject.name = 'flutter_classic_bluetooth'
+rootProject.name = "flutter_classic_bluetooth"
