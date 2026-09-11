@@ -63,7 +63,9 @@ void main() {
       final errors = <Object>[];
       final frames = <String>[];
       final done = Completer<void>();
-      src.stream.frames(maxFrameLength: 4).listen(
+      src.stream
+          .frames(maxFrameLength: 4)
+          .listen(
             (f) => frames.add(String.fromCharCodes(f)),
             onError: errors.add,
             onDone: done.complete,

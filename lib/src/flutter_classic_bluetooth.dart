@@ -96,8 +96,7 @@ class FlutterClassicBluetooth {
   /// screen.
   Future<BtcPermissionStatus> checkPermissions({
     Set<BtcPermission> permissions = _defaultScopes,
-  }) =>
-      _platform.checkPermissions(permissions);
+  }) => _platform.checkPermissions(permissions);
 
   /// Requests [permissions] and returns the status afterwards.
   ///
@@ -120,8 +119,7 @@ class FlutterClassicBluetooth {
   /// ```
   Future<BtcPermissionStatus> requestPermissions({
     Set<BtcPermission> permissions = _defaultScopes,
-  }) =>
-      _platform.requestPermissions(permissions);
+  }) => _platform.requestPermissions(permissions);
 
   /// Opens this app's page in the system settings, so the user can grant a
   /// permission the system will no longer prompt for.
@@ -429,8 +427,11 @@ class FlutterClassicBluetooth {
   }) {
     _validateAddress(address);
     _validateUuid(uuid);
-    final future =
-        _platform.connect(address: address, uuid: uuid, secure: secure);
+    final future = _platform.connect(
+      address: address,
+      uuid: uuid,
+      secure: secure,
+    );
     if (timeout == null) return future;
 
     var timedOut = false;
@@ -439,15 +440,17 @@ class FlutterClassicBluetooth {
     // connection it produces is unreachable from Dart, so its socket and its
     // two event channels would stay open for the life of the app. Close
     // whatever arrives late.
-    unawaited(future.then((connection) async {
-      if (!timedOut) return;
-      try {
-        await connection.close();
-      } catch (_) {
-        // The link may already be gone; there is nothing left to release.
-      }
-      connection.dispose();
-    }, onError: (_) {}));
+    unawaited(
+      future.then((connection) async {
+        if (!timedOut) return;
+        try {
+          await connection.close();
+        } catch (_) {
+          // The link may already be gone; there is nothing left to release.
+        }
+        connection.dispose();
+      }, onError: (_) {}),
+    );
 
     return future.timeout(
       timeout,
@@ -504,7 +507,7 @@ class FlutterClassicBluetooth {
     }
 
     var backoff = initialBackoff;
-    for (var attempt = 1;; attempt++) {
+    for (var attempt = 1; ; attempt++) {
       try {
         return await connect(
           address: address,
@@ -598,7 +601,10 @@ class FlutterClassicBluetooth {
   }) {
     _validateUuid(uuid);
     return _platform.startServer(
-        uuid: uuid, serviceName: serviceName, secure: secure);
+      uuid: uuid,
+      serviceName: serviceName,
+      secure: secure,
+    );
   }
 
   // ── Discoverability ──────────────────────────────────────────────────

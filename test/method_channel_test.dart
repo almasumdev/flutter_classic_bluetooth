@@ -14,74 +14,73 @@ void main() {
       log = [];
 
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(
-        platform.methodChannel,
-        (MethodCall call) async {
-          log.add(call);
-          switch (call.method) {
-            case 'isSupported':
-              return true;
-            case 'isEnabled':
-              return true;
-            case 'enableBluetooth':
-              return true;
-            case 'disableBluetooth':
-              return true;
-            case 'getAdapterName':
-              return 'MockAdapter';
-            case 'getAdapterAddress':
-              return '11:22:33:44:55:66';
-            case 'startDiscovery':
-              return null;
-            case 'stopDiscovery':
-              return null;
-            case 'isDiscovering':
-              return false;
-            case 'getPairedDevices':
-              return [
-                {
-                  'address': 'AA:BB:CC:DD:EE:FF',
-                  'name': 'Device1',
-                  'bondState': 'bonded',
-                }
-              ];
-            case 'bondDevice':
-              return true;
-            case 'unbondDevice':
-              return true;
-            case 'connect':
-              return {'id': 1, 'address': call.arguments['address']};
-            case 'disconnect':
-              return null;
-            case 'write':
-              return null;
-            case 'startServer':
-              return {'id': 1};
-            case 'stopServer':
-              return null;
-            case 'setDiscoverable':
-              return true;
-            case 'getPlatformCapabilities':
-              return {
-                'canEnableBluetooth': true,
-                'canDisableBluetooth': false,
-                'canDiscoverDevices': true,
-                'canGetPairedDevices': true,
-                'canBondDevices': true,
-                'canUnbondDevices': true,
-                'canCreateServer': true,
-                'canSetDiscoverable': false,
-                'supportsMultipleConnections': true,
-                'supportsSecureConnection': true,
-                'supportsInsecureConnection': false,
-                'requiresMfiCertification': false,
-                'platformNote': 'Test platform',
-              };
-            default:
-              return null;
-          }
-        },
-      );
+          .setMockMethodCallHandler(platform.methodChannel, (
+            MethodCall call,
+          ) async {
+            log.add(call);
+            switch (call.method) {
+              case 'isSupported':
+                return true;
+              case 'isEnabled':
+                return true;
+              case 'enableBluetooth':
+                return true;
+              case 'disableBluetooth':
+                return true;
+              case 'getAdapterName':
+                return 'MockAdapter';
+              case 'getAdapterAddress':
+                return '11:22:33:44:55:66';
+              case 'startDiscovery':
+                return null;
+              case 'stopDiscovery':
+                return null;
+              case 'isDiscovering':
+                return false;
+              case 'getPairedDevices':
+                return [
+                  {
+                    'address': 'AA:BB:CC:DD:EE:FF',
+                    'name': 'Device1',
+                    'bondState': 'bonded',
+                  },
+                ];
+              case 'bondDevice':
+                return true;
+              case 'unbondDevice':
+                return true;
+              case 'connect':
+                return {'id': 1, 'address': call.arguments['address']};
+              case 'disconnect':
+                return null;
+              case 'write':
+                return null;
+              case 'startServer':
+                return {'id': 1};
+              case 'stopServer':
+                return null;
+              case 'setDiscoverable':
+                return true;
+              case 'getPlatformCapabilities':
+                return {
+                  'canEnableBluetooth': true,
+                  'canDisableBluetooth': false,
+                  'canDiscoverDevices': true,
+                  'canGetPairedDevices': true,
+                  'canBondDevices': true,
+                  'canUnbondDevices': true,
+                  'canCreateServer': true,
+                  'canSetDiscoverable': false,
+                  'supportsMultipleConnections': true,
+                  'supportsSecureConnection': true,
+                  'supportsInsecureConnection': false,
+                  'requiresMfiCertification': false,
+                  'platformNote': 'Test platform',
+                };
+              default:
+                return null;
+            }
+          });
     });
 
     tearDown(() {
@@ -259,29 +258,33 @@ void main() {
     test('PlatformException converted to BtcUnsupportedException', () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(platform.methodChannel, (call) async {
-        throw PlatformException(
-          code: 'unsupported',
-          message: 'Feature not available',
-          details: {'feature': 'discovery', 'platform': 'iOS'},
-        );
-      });
+            throw PlatformException(
+              code: 'unsupported',
+              message: 'Feature not available',
+              details: {'feature': 'discovery', 'platform': 'iOS'},
+            );
+          });
 
       expect(
         () => platform.isSupported(),
-        throwsA(isA<BtcUnsupportedException>().having(
-          (e) => e.feature,
-          'feature',
-          'discovery',
-        )),
+        throwsA(
+          isA<BtcUnsupportedException>().having(
+            (e) => e.feature,
+            'feature',
+            'discovery',
+          ),
+        ),
       );
     });
 
     test('PlatformException converted to BtcPermissionException', () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(platform.methodChannel, (call) async {
-        throw PlatformException(
-            code: 'permissionDenied', message: 'No BT permission');
-      });
+            throw PlatformException(
+              code: 'permissionDenied',
+              message: 'No BT permission',
+            );
+          });
 
       expect(
         () => platform.isEnabled(),
@@ -292,8 +295,11 @@ void main() {
     test('PlatformException converted to BtcDisabledException', () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(platform.methodChannel, (call) async {
-        throw PlatformException(code: 'bluetoothDisabled', message: 'BT off');
-      });
+            throw PlatformException(
+              code: 'bluetoothDisabled',
+              message: 'BT off',
+            );
+          });
 
       expect(
         () => platform.startDiscovery(),
@@ -304,31 +310,36 @@ void main() {
     test('PlatformException converted to BtcConnectionException', () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(platform.methodChannel, (call) async {
-        throw PlatformException(
-          code: 'connectionFailed',
-          message: 'Refused',
-          details: {'address': 'AA:BB:CC:DD:EE:FF'},
-        );
-      });
+            throw PlatformException(
+              code: 'connectionFailed',
+              message: 'Refused',
+              details: {'address': 'AA:BB:CC:DD:EE:FF'},
+            );
+          });
 
       expect(
         () => platform.connect(
           address: 'AA:BB:CC:DD:EE:FF',
           uuid: '00001101-0000-1000-8000-00805F9B34FB',
         ),
-        throwsA(isA<BtcConnectionException>().having(
-          (e) => e.address,
-          'address',
-          'AA:BB:CC:DD:EE:FF',
-        )),
+        throwsA(
+          isA<BtcConnectionException>().having(
+            (e) => e.address,
+            'address',
+            'AA:BB:CC:DD:EE:FF',
+          ),
+        ),
       );
     });
 
     test('PlatformException converted to BtcWriteException', () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(platform.methodChannel, (call) async {
-        throw PlatformException(code: 'writeFailed', message: 'Write error');
-      });
+            throw PlatformException(
+              code: 'writeFailed',
+              message: 'Write error',
+            );
+          });
 
       expect(
         () => platform.write(1, Uint8List(0)),
@@ -339,39 +350,39 @@ void main() {
     test('PlatformException converted to BtcTimeoutException', () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(platform.methodChannel, (call) async {
-        throw PlatformException(
-          code: 'timeout',
-          message: 'Timed out',
-          details: {'timeoutMs': 5000},
-        );
-      });
+            throw PlatformException(
+              code: 'timeout',
+              message: 'Timed out',
+              details: {'timeoutMs': 5000},
+            );
+          });
 
       expect(
         () => platform.connect(
           address: 'AA:BB:CC:DD:EE:FF',
           uuid: '00001101-0000-1000-8000-00805F9B34FB',
         ),
-        throwsA(isA<BtcTimeoutException>().having(
-          (e) => e.timeoutMs,
-          'timeoutMs',
-          5000,
-        )),
+        throwsA(
+          isA<BtcTimeoutException>().having(
+            (e) => e.timeoutMs,
+            'timeoutMs',
+            5000,
+          ),
+        ),
       );
     });
 
     test('Unknown PlatformException converted to BtcException', () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(platform.methodChannel, (call) async {
-        throw PlatformException(code: 'unknown_code', message: 'Something');
-      });
+            throw PlatformException(code: 'unknown_code', message: 'Something');
+          });
 
       expect(
         () => platform.isSupported(),
-        throwsA(isA<BtcException>().having(
-          (e) => e.code,
-          'code',
-          'unknown_code',
-        )),
+        throwsA(
+          isA<BtcException>().having((e) => e.code, 'code', 'unknown_code'),
+        ),
       );
     });
   });

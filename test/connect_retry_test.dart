@@ -11,20 +11,20 @@ List<int> _failWith(String cause, {int? succeedOnAttempt}) {
   final attempts = <int>[];
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(_channel, (call) async {
-    if (call.method != 'connect') return null;
-    attempts.add(attempts.length + 1);
-    if (succeedOnAttempt != null && attempts.length >= succeedOnAttempt) {
-      return <String, dynamic>{'id': 1, 'address': 'AA:BB:CC:DD:EE:FF'};
-    }
-    throw PlatformException(
-      code: 'connectionFailed',
-      message: 'Connection failed',
-      details: <String, dynamic>{
-        'address': 'AA:BB:CC:DD:EE:FF',
-        'cause': cause,
-      },
-    );
-  });
+        if (call.method != 'connect') return null;
+        attempts.add(attempts.length + 1);
+        if (succeedOnAttempt != null && attempts.length >= succeedOnAttempt) {
+          return <String, dynamic>{'id': 1, 'address': 'AA:BB:CC:DD:EE:FF'};
+        }
+        throw PlatformException(
+          code: 'connectionFailed',
+          message: 'Connection failed',
+          details: <String, dynamic>{
+            'address': 'AA:BB:CC:DD:EE:FF',
+            'cause': cause,
+          },
+        );
+      });
   return attempts;
 }
 
@@ -142,17 +142,19 @@ void main() {
       );
     });
 
-    test('an invalid address still fails validation before any attempt',
-        () async {
-      final attempts = _failWith('unreachable');
-      await expectLater(
-        FlutterClassicBluetooth().connectWithRetry(
-          address: 'not-a-mac',
-          initialBackoff: noWait,
-        ),
-        throwsA(isA<BtcAddressException>()),
-      );
-      expect(attempts, isEmpty);
-    });
+    test(
+      'an invalid address still fails validation before any attempt',
+      () async {
+        final attempts = _failWith('unreachable');
+        await expectLater(
+          FlutterClassicBluetooth().connectWithRetry(
+            address: 'not-a-mac',
+            initialBackoff: noWait,
+          ),
+          throwsA(isA<BtcAddressException>()),
+        );
+        expect(attempts, isEmpty);
+      },
+    );
   });
 }

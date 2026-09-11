@@ -98,15 +98,16 @@ class BtcDevice {
   /// follow-up scan event (e.g. an RSSI refresh) often omits the name, and this
   /// preserves the earlier value instead of blanking it.
   BtcDevice mergedWith(BtcDevice other) => BtcDevice(
-        address: other.address,
-        name: other.name ?? name,
-        alias: other.alias ?? alias,
-        rssi: other.rssi ?? rssi,
-        type: other.type != BtcDeviceType.unknown ? other.type : type,
-        bondState:
-            other.bondState != BtcBondState.none ? other.bondState : bondState,
-        uuids: other.uuids.isNotEmpty ? other.uuids : uuids,
-      );
+    address: other.address,
+    name: other.name ?? name,
+    alias: other.alias ?? alias,
+    rssi: other.rssi ?? rssi,
+    type: other.type != BtcDeviceType.unknown ? other.type : type,
+    bondState: other.bondState != BtcBondState.none
+        ? other.bondState
+        : bondState,
+    uuids: other.uuids.isNotEmpty ? other.uuids : uuids,
+  );
 
   @override
   bool operator ==(Object other) =>

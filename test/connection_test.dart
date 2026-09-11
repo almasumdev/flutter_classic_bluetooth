@@ -14,10 +14,7 @@ void main() {
 
       sink.cancel();
       expect(sink.isClosed, isTrue);
-      expect(
-        () => sink.add(Uint8List(1)),
-        throwsA(isA<StateError>()),
-      );
+      expect(() => sink.add(Uint8List(1)), throwsA(isA<StateError>()));
     });
 
     test('isClosed is false initially', () {
@@ -57,15 +54,16 @@ void main() {
     });
 
     test('add sends write over method channel', () async {
-      final methodChannel =
-          const MethodChannel('flutter_classic_bluetooth/methods');
+      final methodChannel = const MethodChannel(
+        'flutter_classic_bluetooth/methods',
+      );
       final calls = <MethodCall>[];
 
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(methodChannel, (call) async {
-        calls.add(call);
-        return null;
-      });
+            calls.add(call);
+            return null;
+          });
 
       final sink = BtcStreamSink(
         connectionId: 42,
@@ -89,9 +87,9 @@ void main() {
       final calls = <MethodCall>[];
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(methodChannel, (call) async {
-        calls.add(call);
-        return null;
-      });
+            calls.add(call);
+            return null;
+          });
 
       final sink = BtcStreamSink(connectionId: 9, methodChannel: methodChannel);
       await sink.writeLine('AT');
@@ -106,20 +104,18 @@ void main() {
     });
 
     test('writes are chained in order', () async {
-      final methodChannel =
-          const MethodChannel('flutter_classic_bluetooth/methods');
+      final methodChannel = const MethodChannel(
+        'flutter_classic_bluetooth/methods',
+      );
       final calls = <int>[];
 
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(methodChannel, (call) async {
-        calls.add(call.arguments['data'][0] as int);
-        return null;
-      });
+            calls.add(call.arguments['data'][0] as int);
+            return null;
+          });
 
-      final sink = BtcStreamSink(
-        connectionId: 1,
-        methodChannel: methodChannel,
-      );
+      final sink = BtcStreamSink(connectionId: 1, methodChannel: methodChannel);
 
       // Fire-and-forget multiple writes
       sink.add(Uint8List.fromList([1]));
@@ -171,96 +167,110 @@ void main() {
       expect(conn.output.isClosed, isTrue);
     });
 
-    test('sendAndReceive writes the command and returns the response line',
-        () async {
-      const method = MethodChannel('flutter_classic_bluetooth/methods');
-      const dataChannel =
-          EventChannel('flutter_classic_bluetooth/connection/1');
-      const stateChannel =
-          EventChannel('flutter_classic_bluetooth/connection_state/1');
-      final messenger =
-          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    test(
+      'sendAndReceive writes the command and returns the response line',
+      () async {
+        const method = MethodChannel('flutter_classic_bluetooth/methods');
+        const dataChannel = EventChannel(
+          'flutter_classic_bluetooth/connection/1',
+        );
+        const stateChannel = EventChannel(
+          'flutter_classic_bluetooth/connection_state/1',
+        );
+        final messenger =
+            TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
 
-      final writes = <String>[];
-      messenger.setMockMethodCallHandler(method, (call) async {
-        if (call.method == 'write') {
-          writes.add(String.fromCharCodes(call.arguments['data'] as Uint8List));
-        }
-        return null;
-      });
-      MockStreamHandlerEventSink? dataSink;
-      messenger.setMockStreamHandler(
-        dataChannel,
-        MockStreamHandler.inline(onListen: (args, sink) => dataSink = sink),
-      );
-      messenger.setMockStreamHandler(
-        stateChannel,
-        MockStreamHandler.inline(onListen: (args, sink) {}),
-      );
+        final writes = <String>[];
+        messenger.setMockMethodCallHandler(method, (call) async {
+          if (call.method == 'write') {
+            writes.add(
+              String.fromCharCodes(call.arguments['data'] as Uint8List),
+            );
+          }
+          return null;
+        });
+        MockStreamHandlerEventSink? dataSink;
+        messenger.setMockStreamHandler(
+          dataChannel,
+          MockStreamHandler.inline(onListen: (args, sink) => dataSink = sink),
+        );
+        messenger.setMockStreamHandler(
+          stateChannel,
+          MockStreamHandler.inline(onListen: (args, sink) {}),
+        );
 
-      final conn = BtcConnection(
-        id: 1,
-        address: 'AA:BB:CC:DD:EE:FF',
-        methodChannel: method,
-      );
+        final conn = BtcConnection(
+          id: 1,
+          address: 'AA:BB:CC:DD:EE:FF',
+          methodChannel: method,
+        );
 
-      final future =
-          conn.sendAndReceive('AT', timeout: const Duration(seconds: 2));
-      await Future<void>.delayed(const Duration(milliseconds: 10));
-      dataSink!.success(Uint8List.fromList('OK\r\n'.codeUnits));
+        final future = conn.sendAndReceive(
+          'AT',
+          timeout: const Duration(seconds: 2),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        dataSink!.success(Uint8List.fromList('OK\r\n'.codeUnits));
 
-      expect(await future, 'OK');
-      expect(writes, ['AT\r\n']);
+        expect(await future, 'OK');
+        expect(writes, ['AT\r\n']);
 
-      conn.dispose();
-      messenger.setMockMethodCallHandler(method, null);
-      messenger.setMockStreamHandler(dataChannel, null);
-      messenger.setMockStreamHandler(stateChannel, null);
-    });
+        conn.dispose();
+        messenger.setMockMethodCallHandler(method, null);
+        messenger.setMockStreamHandler(dataChannel, null);
+        messenger.setMockStreamHandler(stateChannel, null);
+      },
+    );
 
-    test('sendAndReceive throws BtcTimeoutException when no response arrives',
-        () async {
-      const method = MethodChannel('flutter_classic_bluetooth/methods');
-      const dataChannel =
-          EventChannel('flutter_classic_bluetooth/connection/2');
-      const stateChannel =
-          EventChannel('flutter_classic_bluetooth/connection_state/2');
-      final messenger =
-          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    test(
+      'sendAndReceive throws BtcTimeoutException when no response arrives',
+      () async {
+        const method = MethodChannel('flutter_classic_bluetooth/methods');
+        const dataChannel = EventChannel(
+          'flutter_classic_bluetooth/connection/2',
+        );
+        const stateChannel = EventChannel(
+          'flutter_classic_bluetooth/connection_state/2',
+        );
+        final messenger =
+            TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
 
-      messenger.setMockMethodCallHandler(method, (call) async => null);
-      messenger.setMockStreamHandler(
-        dataChannel,
-        MockStreamHandler.inline(onListen: (args, sink) {}),
-      );
-      messenger.setMockStreamHandler(
-        stateChannel,
-        MockStreamHandler.inline(onListen: (args, sink) {}),
-      );
+        messenger.setMockMethodCallHandler(method, (call) async => null);
+        messenger.setMockStreamHandler(
+          dataChannel,
+          MockStreamHandler.inline(onListen: (args, sink) {}),
+        );
+        messenger.setMockStreamHandler(
+          stateChannel,
+          MockStreamHandler.inline(onListen: (args, sink) {}),
+        );
 
-      final conn = BtcConnection(
-        id: 2,
-        address: 'AA:BB:CC:DD:EE:FF',
-        methodChannel: method,
-      );
+        final conn = BtcConnection(
+          id: 2,
+          address: 'AA:BB:CC:DD:EE:FF',
+          methodChannel: method,
+        );
 
-      await expectLater(
-        conn.sendAndReceive('AT', timeout: const Duration(milliseconds: 50)),
-        throwsA(isA<BtcTimeoutException>()),
-      );
+        await expectLater(
+          conn.sendAndReceive('AT', timeout: const Duration(milliseconds: 50)),
+          throwsA(isA<BtcTimeoutException>()),
+        );
 
-      conn.dispose();
-      messenger.setMockMethodCallHandler(method, null);
-      messenger.setMockStreamHandler(dataChannel, null);
-      messenger.setMockStreamHandler(stateChannel, null);
-    });
+        conn.dispose();
+        messenger.setMockMethodCallHandler(method, null);
+        messenger.setMockStreamHandler(dataChannel, null);
+        messenger.setMockStreamHandler(stateChannel, null);
+      },
+    );
 
     test('readRssi sends getConnectionRssi and returns the value', () async {
       const method = MethodChannel('flutter_classic_bluetooth/methods');
-      const dataChannel =
-          EventChannel('flutter_classic_bluetooth/connection/7');
-      const stateChannel =
-          EventChannel('flutter_classic_bluetooth/connection_state/7');
+      const dataChannel = EventChannel(
+        'flutter_classic_bluetooth/connection/7',
+      );
+      const stateChannel = EventChannel(
+        'flutter_classic_bluetooth/connection_state/7',
+      );
       final messenger =
           TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
 
@@ -270,12 +280,19 @@ void main() {
         return -42;
       });
       messenger.setMockStreamHandler(
-          dataChannel, MockStreamHandler.inline(onListen: (args, sink) {}));
+        dataChannel,
+        MockStreamHandler.inline(onListen: (args, sink) {}),
+      );
       messenger.setMockStreamHandler(
-          stateChannel, MockStreamHandler.inline(onListen: (args, sink) {}));
+        stateChannel,
+        MockStreamHandler.inline(onListen: (args, sink) {}),
+      );
 
       final conn = BtcConnection(
-          id: 7, address: 'AA:BB:CC:DD:EE:FF', methodChannel: method);
+        id: 7,
+        address: 'AA:BB:CC:DD:EE:FF',
+        methodChannel: method,
+      );
 
       expect(await conn.readRssi(), -42);
       expect(seen?.method, 'getConnectionRssi');
@@ -289,21 +306,30 @@ void main() {
 
     test('readRssi returns null when the platform has no sample', () async {
       const method = MethodChannel('flutter_classic_bluetooth/methods');
-      const dataChannel =
-          EventChannel('flutter_classic_bluetooth/connection/8');
-      const stateChannel =
-          EventChannel('flutter_classic_bluetooth/connection_state/8');
+      const dataChannel = EventChannel(
+        'flutter_classic_bluetooth/connection/8',
+      );
+      const stateChannel = EventChannel(
+        'flutter_classic_bluetooth/connection_state/8',
+      );
       final messenger =
           TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
 
       messenger.setMockMethodCallHandler(method, (call) async => null);
       messenger.setMockStreamHandler(
-          dataChannel, MockStreamHandler.inline(onListen: (args, sink) {}));
+        dataChannel,
+        MockStreamHandler.inline(onListen: (args, sink) {}),
+      );
       messenger.setMockStreamHandler(
-          stateChannel, MockStreamHandler.inline(onListen: (args, sink) {}));
+        stateChannel,
+        MockStreamHandler.inline(onListen: (args, sink) {}),
+      );
 
       final conn = BtcConnection(
-          id: 8, address: 'AA:BB:CC:DD:EE:FF', methodChannel: method);
+        id: 8,
+        address: 'AA:BB:CC:DD:EE:FF',
+        methodChannel: method,
+      );
 
       expect(await conn.readRssi(), isNull);
 
@@ -313,61 +339,86 @@ void main() {
       messenger.setMockStreamHandler(stateChannel, null);
     });
 
-    test('readRssi maps an unsupported PlatformException to unsupported',
-        () async {
-      const method = MethodChannel('flutter_classic_bluetooth/methods');
-      const dataChannel =
-          EventChannel('flutter_classic_bluetooth/connection/9');
-      const stateChannel =
-          EventChannel('flutter_classic_bluetooth/connection_state/9');
-      final messenger =
-          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-
-      messenger.setMockMethodCallHandler(method, (call) async {
-        throw PlatformException(
-          code: 'unsupported',
-          message: 'no RSSI on Windows',
-          details: {'feature': 'getConnectionRssi', 'platform': 'Windows'},
+    test(
+      'readRssi maps an unsupported PlatformException to unsupported',
+      () async {
+        const method = MethodChannel('flutter_classic_bluetooth/methods');
+        const dataChannel = EventChannel(
+          'flutter_classic_bluetooth/connection/9',
         );
-      });
-      messenger.setMockStreamHandler(
-          dataChannel, MockStreamHandler.inline(onListen: (args, sink) {}));
-      messenger.setMockStreamHandler(
-          stateChannel, MockStreamHandler.inline(onListen: (args, sink) {}));
+        const stateChannel = EventChannel(
+          'flutter_classic_bluetooth/connection_state/9',
+        );
+        final messenger =
+            TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
 
-      final conn = BtcConnection(
-          id: 9, address: 'AA:BB:CC:DD:EE:FF', methodChannel: method);
+        messenger.setMockMethodCallHandler(method, (call) async {
+          throw PlatformException(
+            code: 'unsupported',
+            message: 'no RSSI on Windows',
+            details: {'feature': 'getConnectionRssi', 'platform': 'Windows'},
+          );
+        });
+        messenger.setMockStreamHandler(
+          dataChannel,
+          MockStreamHandler.inline(onListen: (args, sink) {}),
+        );
+        messenger.setMockStreamHandler(
+          stateChannel,
+          MockStreamHandler.inline(onListen: (args, sink) {}),
+        );
 
-      await expectLater(
-        conn.readRssi(),
-        throwsA(isA<BtcUnsupportedException>()
-            .having((e) => e.platform, 'platform', 'Windows')),
-      );
+        final conn = BtcConnection(
+          id: 9,
+          address: 'AA:BB:CC:DD:EE:FF',
+          methodChannel: method,
+        );
 
-      conn.dispose();
-      messenger.setMockMethodCallHandler(method, null);
-      messenger.setMockStreamHandler(dataChannel, null);
-      messenger.setMockStreamHandler(stateChannel, null);
-    });
+        await expectLater(
+          conn.readRssi(),
+          throwsA(
+            isA<BtcUnsupportedException>().having(
+              (e) => e.platform,
+              'platform',
+              'Windows',
+            ),
+          ),
+        );
+
+        conn.dispose();
+        messenger.setMockMethodCallHandler(method, null);
+        messenger.setMockStreamHandler(dataChannel, null);
+        messenger.setMockStreamHandler(stateChannel, null);
+      },
+    );
 
     test('readRssi maps a MissingPluginException to unsupported', () async {
       const method = MethodChannel('flutter_classic_bluetooth/methods');
-      const dataChannel =
-          EventChannel('flutter_classic_bluetooth/connection/10');
-      const stateChannel =
-          EventChannel('flutter_classic_bluetooth/connection_state/10');
+      const dataChannel = EventChannel(
+        'flutter_classic_bluetooth/connection/10',
+      );
+      const stateChannel = EventChannel(
+        'flutter_classic_bluetooth/connection_state/10',
+      );
       final messenger =
           TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
 
       // No method handler → invokeMethod throws MissingPluginException.
       messenger.setMockMethodCallHandler(method, null);
       messenger.setMockStreamHandler(
-          dataChannel, MockStreamHandler.inline(onListen: (args, sink) {}));
+        dataChannel,
+        MockStreamHandler.inline(onListen: (args, sink) {}),
+      );
       messenger.setMockStreamHandler(
-          stateChannel, MockStreamHandler.inline(onListen: (args, sink) {}));
+        stateChannel,
+        MockStreamHandler.inline(onListen: (args, sink) {}),
+      );
 
       final conn = BtcConnection(
-          id: 10, address: 'AA:BB:CC:DD:EE:FF', methodChannel: method);
+        id: 10,
+        address: 'AA:BB:CC:DD:EE:FF',
+        methodChannel: method,
+      );
 
       await expectLater(
         conn.readRssi(),
@@ -397,15 +448,16 @@ void main() {
     });
 
     test('close sends stopServer method call', () async {
-      final methodChannel =
-          const MethodChannel('flutter_classic_bluetooth/methods');
+      final methodChannel = const MethodChannel(
+        'flutter_classic_bluetooth/methods',
+      );
       final calls = <MethodCall>[];
 
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(methodChannel, (call) async {
-        calls.add(call);
-        return null;
-      });
+            calls.add(call);
+            return null;
+          });
 
       final server = BtcServerSocket(
         id: 7,

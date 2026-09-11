@@ -66,12 +66,13 @@ class BtcConnection {
     required MethodChannel methodChannel,
   }) : _methodChannel = methodChannel {
     _dataChannel = EventChannel('flutter_classic_bluetooth/connection/$id');
-    _stateChannel =
-        EventChannel('flutter_classic_bluetooth/connection_state/$id');
+    _stateChannel = EventChannel(
+      'flutter_classic_bluetooth/connection_state/$id',
+    );
 
-    _inputStream = _dataChannel
-        .receiveBroadcastStream()
-        .map((event) => event as Uint8List);
+    _inputStream = _dataChannel.receiveBroadcastStream().map(
+      (event) => event as Uint8List,
+    );
 
     _outputSink = BtcStreamSink(
       connectionId: id,
@@ -139,16 +140,18 @@ class BtcConnection {
   }) async {
     final completer = Completer<String>();
     // Subscribe before writing so a fast response is never missed.
-    final sub = input.lines(encoding: encoding).listen(
-      (line) {
-        if (!completer.isCompleted && (where == null || where(line))) {
-          completer.complete(line);
-        }
-      },
-      onError: (Object e) {
-        if (!completer.isCompleted) completer.completeError(e);
-      },
-    );
+    final sub = input
+        .lines(encoding: encoding)
+        .listen(
+          (line) {
+            if (!completer.isCompleted && (where == null || where(line))) {
+              completer.complete(line);
+            }
+          },
+          onError: (Object e) {
+            if (!completer.isCompleted) completer.completeError(e);
+          },
+        );
     try {
       await _outputSink.writeString('$command$newline', encoding: encoding);
       return await completer.future.timeout(
@@ -176,8 +179,9 @@ class BtcConnection {
   /// discovery-time RSSI is always available separately on `BtcDevice.rssi`.)
   Future<int?> readRssi() async {
     try {
-      return await _methodChannel
-          .invokeMethod<int>('getConnectionRssi', {'id': id});
+      return await _methodChannel.invokeMethod<int>('getConnectionRssi', {
+        'id': id,
+      });
     } on MissingPluginException {
       throw const BtcUnsupportedException(
         feature: 'getConnectionRssi',

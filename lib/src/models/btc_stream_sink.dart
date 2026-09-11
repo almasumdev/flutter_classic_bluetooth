@@ -69,8 +69,7 @@ class BtcStreamSink {
     String text, {
     String newline = '\r\n',
     Encoding encoding = utf8,
-  }) =>
-      writeString('$text$newline', encoding: encoding);
+  }) => writeString('$text$newline', encoding: encoding);
 
   /// Pipes every chunk of [stream] to the remote device, in order.
   ///

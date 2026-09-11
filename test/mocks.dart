@@ -26,7 +26,8 @@ class MockFlutterClassicBluetoothPlatform
 
   @override
   Future<BtcPermissionStatus> requestPermissions(
-      Set<BtcPermission> permissions) {
+    Set<BtcPermission> permissions,
+  ) {
     permissionCalls.add('request');
     permissionScopes.add(permissions);
     return Future.value(permissionStatus);
@@ -85,12 +86,12 @@ class MockFlutterClassicBluetoothPlatform
 
   @override
   Future<List<BtcDevice>> getPairedDevices() => Future.value([
-        const BtcDevice(
-          address: 'AA:BB:CC:DD:EE:FF',
-          name: 'TestDevice',
-          bondState: BtcBondState.bonded,
-        ),
-      ]);
+    const BtcDevice(
+      address: 'AA:BB:CC:DD:EE:FF',
+      name: 'TestDevice',
+      bondState: BtcBondState.bonded,
+    ),
+  ]);
 
   @override
   Future<bool> bondDevice(String address) => Future.value(true);
@@ -133,11 +134,12 @@ class MockFlutterClassicBluetoothPlatform
   Future<bool> setDiscoverable(int durationSeconds) => Future.value(true);
 
   @override
-  Future<BtcPlatformCapabilities> getPlatformCapabilities() =>
-      Future.value(const BtcPlatformCapabilities(
-        canDiscoverDevices: true,
-        canGetPairedDevices: true,
-        canBondDevices: true,
-        supportsMultipleConnections: true,
-      ));
+  Future<BtcPlatformCapabilities> getPlatformCapabilities() => Future.value(
+    const BtcPlatformCapabilities(
+      canDiscoverDevices: true,
+      canGetPairedDevices: true,
+      canBondDevices: true,
+      supportsMultipleConnections: true,
+    ),
+  );
 }

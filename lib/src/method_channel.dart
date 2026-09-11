@@ -18,18 +18,23 @@ class MethodChannelFlutterClassicBluetooth
     extends FlutterClassicBluetoothPlatform {
   /// The method channel used to interact with the native platform.
   @visibleForTesting
-  final methodChannel =
-      const MethodChannel('flutter_classic_bluetooth/methods');
+  final methodChannel = const MethodChannel(
+    'flutter_classic_bluetooth/methods',
+  );
 
   // Event channels
-  final _adapterStateChannel =
-      const EventChannel('flutter_classic_bluetooth/adapter_state');
-  final _discoveryStateChannel =
-      const EventChannel('flutter_classic_bluetooth/discovery_state');
-  final _discoveryResultsChannel =
-      const EventChannel('flutter_classic_bluetooth/discovery_results');
-  final _bondStateChannel =
-      const EventChannel('flutter_classic_bluetooth/bond_state');
+  final _adapterStateChannel = const EventChannel(
+    'flutter_classic_bluetooth/adapter_state',
+  );
+  final _discoveryStateChannel = const EventChannel(
+    'flutter_classic_bluetooth/discovery_state',
+  );
+  final _discoveryResultsChannel = const EventChannel(
+    'flutter_classic_bluetooth/discovery_results',
+  );
+  final _bondStateChannel = const EventChannel(
+    'flutter_classic_bluetooth/bond_state',
+  );
 
   // Cached broadcast streams
   Stream<BtcAdapterState>? _adapterStateStream;
@@ -40,7 +45,8 @@ class MethodChannelFlutterClassicBluetooth
 
   @override
   Future<BtcPermissionStatus> checkPermissions(
-      Set<BtcPermission> permissions) async {
+    Set<BtcPermission> permissions,
+  ) async {
     return _permissionStatus(
       await _invokeOptional<String>('checkPermissions', permissions),
     );
@@ -48,7 +54,8 @@ class MethodChannelFlutterClassicBluetooth
 
   @override
   Future<BtcPermissionStatus> requestPermissions(
-      Set<BtcPermission> permissions) async {
+    Set<BtcPermission> permissions,
+  ) async {
     return _permissionStatus(
       await _invokeOptional<String>('requestPermissions', permissions),
     );
@@ -133,12 +140,12 @@ class MethodChannelFlutterClassicBluetooth
 
   @override
   Stream<BtcAdapterState> adapterState() {
-    _adapterStateStream ??= _adapterStateChannel
-        .receiveBroadcastStream()
-        .map((event) => BtcAdapterState.values.firstWhere(
-              (e) => e.name == event,
-              orElse: () => BtcAdapterState.unknown,
-            ));
+    _adapterStateStream ??= _adapterStateChannel.receiveBroadcastStream().map(
+      (event) => BtcAdapterState.values.firstWhere(
+        (e) => e.name == event,
+        orElse: () => BtcAdapterState.unknown,
+      ),
+    );
     return _adapterStateStream!;
   }
 
@@ -181,9 +188,10 @@ class MethodChannelFlutterClassicBluetooth
   Stream<BtcDevice> discoveryResults() {
     _discoveryResultsStream ??= _discoveryResultsChannel
         .receiveBroadcastStream()
-        .map((event) => BtcDevice.fromMap(
-              Map<dynamic, dynamic>.from(event as Map),
-            ));
+        .map(
+          (event) =>
+              BtcDevice.fromMap(Map<dynamic, dynamic>.from(event as Map)),
+        );
     return _discoveryResultsStream!;
   }
 
@@ -210,8 +218,9 @@ class MethodChannelFlutterClassicBluetooth
 
   @override
   Stream<BtcBondState> bondState(String address) {
-    return _bondStateChannel
-        .receiveBroadcastStream({'address': address}).map((event) {
+    return _bondStateChannel.receiveBroadcastStream({'address': address}).map((
+      event,
+    ) {
       return BtcBondState.values.firstWhere(
         (e) => e.name == event,
         orElse: () => BtcBondState.none,
@@ -281,8 +290,9 @@ class MethodChannelFlutterClassicBluetooth
 
   @override
   Future<bool> setDiscoverable(int durationSeconds) async {
-    return await _invoke<bool>(
-            'setDiscoverable', {'duration': durationSeconds}) ??
+    return await _invoke<bool>('setDiscoverable', {
+          'duration': durationSeconds,
+        }) ??
         false;
   }
 
@@ -291,17 +301,17 @@ class MethodChannelFlutterClassicBluetooth
   @override
   Future<BtcPlatformCapabilities> getPlatformCapabilities() async {
     final result = await _invoke<Map>('getPlatformCapabilities');
-    return BtcPlatformCapabilities.fromMap(
-      Map<dynamic, dynamic>.from(result!),
-    );
+    return BtcPlatformCapabilities.fromMap(Map<dynamic, dynamic>.from(result!));
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────
 
   /// Invokes a method on the platform channel and converts
   /// [PlatformException] to typed [BtcException].
-  Future<T?> _invoke<T>(String method,
-      [Map<String, dynamic>? arguments]) async {
+  Future<T?> _invoke<T>(
+    String method, [
+    Map<String, dynamic>? arguments,
+  ]) async {
     try {
       return await methodChannel.invokeMethod<T>(method, arguments);
     } on PlatformException catch (e) {
@@ -314,15 +324,15 @@ class MethodChannelFlutterClassicBluetooth
   /// An unrecognised or absent tag reads as [BtcConnectFailure.unknown], so a
   /// platform that does not classify yet degrades rather than throwing.
   static BtcConnectFailure _connectFailureFrom(String? tag) => switch (tag) {
-        'adapterOff' => BtcConnectFailure.adapterOff,
-        'notPaired' => BtcConnectFailure.notPaired,
-        'permissionDenied' => BtcConnectFailure.permissionDenied,
-        'unreachable' => BtcConnectFailure.unreachable,
-        'serviceNotSupported' => BtcConnectFailure.serviceNotSupported,
-        'busy' => BtcConnectFailure.busy,
-        'timeout' => BtcConnectFailure.timeout,
-        _ => BtcConnectFailure.unknown,
-      };
+    'adapterOff' => BtcConnectFailure.adapterOff,
+    'notPaired' => BtcConnectFailure.notPaired,
+    'permissionDenied' => BtcConnectFailure.permissionDenied,
+    'unreachable' => BtcConnectFailure.unreachable,
+    'serviceNotSupported' => BtcConnectFailure.serviceNotSupported,
+    'busy' => BtcConnectFailure.busy,
+    'timeout' => BtcConnectFailure.timeout,
+    _ => BtcConnectFailure.unknown,
+  };
 
   /// Converts a [PlatformException] to a typed [BtcException].
   BtcException _convertException(PlatformException e) {
@@ -337,7 +347,8 @@ class MethodChannelFlutterClassicBluetooth
         return BtcPermissionException(e.message ?? 'Permission denied');
       case 'bluetoothDisabled':
         return BtcDisabledException(
-            e.message ?? 'Bluetooth adapter is disabled');
+          e.message ?? 'Bluetooth adapter is disabled',
+        );
       case 'connectionFailed':
         return BtcConnectionException(
           e.message ?? 'Connection failed',
@@ -355,7 +366,8 @@ class MethodChannelFlutterClassicBluetooth
         );
       case 'invalidAddress':
         return BtcAddressException(
-            e.details?['address'] as String? ?? 'unknown');
+          e.details?['address'] as String? ?? 'unknown',
+        );
       case 'invalidUuid':
         return BtcUuidException(e.details?['uuid'] as String? ?? 'unknown');
       default:

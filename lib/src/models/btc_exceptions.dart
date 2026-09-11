@@ -61,9 +61,9 @@ class BtcUnsupportedException extends BtcException {
     required this.platform,
     String? reason,
   }) : super(
-          reason ?? '$feature is not supported on $platform',
-          code: 'unsupported',
-        );
+         reason ?? '$feature is not supported on $platform',
+         code: 'unsupported',
+       );
 
   @override
   String toString() =>
@@ -76,7 +76,7 @@ class BtcUnsupportedException extends BtcException {
 class BtcPermissionException extends BtcException {
   /// Creates a [BtcPermissionException] with an optional [message].
   const BtcPermissionException([super.message = 'Bluetooth permission denied'])
-      : super(code: 'permissionDenied');
+    : super(code: 'permissionDenied');
 }
 
 /// Thrown when an operation requires Bluetooth to be enabled but it is off.
@@ -85,7 +85,7 @@ class BtcPermissionException extends BtcException {
 class BtcDisabledException extends BtcException {
   /// Creates a [BtcDisabledException] with an optional [message].
   const BtcDisabledException([super.message = 'Bluetooth adapter is disabled'])
-      : super(code: 'bluetoothDisabled');
+    : super(code: 'bluetoothDisabled');
 }
 
 /// Thrown when a connection attempt fails.
@@ -115,7 +115,8 @@ class BtcConnectionException extends BtcException {
   }) : super(code: 'connectionFailed');
 
   @override
-  String toString() => 'BtcConnectionException($cause): $message'
+  String toString() =>
+      'BtcConnectionException($cause): $message'
       '${address == null ? '' : ' [$address]'}';
 }
 
@@ -154,20 +155,18 @@ enum BtcConnectFailure {
 
   /// A short, user-safe sentence explaining this cause.
   String get description => switch (this) {
-        BtcConnectFailure.unknown =>
-          'The connection failed for an unknown reason.',
-        BtcConnectFailure.adapterOff => 'Bluetooth is turned off.',
-        BtcConnectFailure.notPaired =>
-          'The device is not paired. Pair it before connecting.',
-        BtcConnectFailure.permissionDenied =>
-          'Bluetooth permission was refused.',
-        BtcConnectFailure.unreachable =>
-          'The device did not respond. It may be switched off or out of range.',
-        BtcConnectFailure.serviceNotSupported =>
-          'The device does not offer the requested serial service.',
-        BtcConnectFailure.busy => 'The device is already in use.',
-        BtcConnectFailure.timeout => 'The connection attempt timed out.',
-      };
+    BtcConnectFailure.unknown => 'The connection failed for an unknown reason.',
+    BtcConnectFailure.adapterOff => 'Bluetooth is turned off.',
+    BtcConnectFailure.notPaired =>
+      'The device is not paired. Pair it before connecting.',
+    BtcConnectFailure.permissionDenied => 'Bluetooth permission was refused.',
+    BtcConnectFailure.unreachable =>
+      'The device did not respond. It may be switched off or out of range.',
+    BtcConnectFailure.serviceNotSupported =>
+      'The device does not offer the requested serial service.',
+    BtcConnectFailure.busy => 'The device is already in use.',
+    BtcConnectFailure.timeout => 'The connection attempt timed out.',
+  };
 
   /// Whether retrying the same call could plausibly succeed.
   bool get isRetryable =>
@@ -182,7 +181,7 @@ enum BtcConnectFailure {
 class BtcWriteException extends BtcException {
   /// Creates a [BtcWriteException] with an optional [message].
   const BtcWriteException([super.message = 'Failed to write data'])
-      : super(code: 'writeFailed');
+    : super(code: 'writeFailed');
 }
 
 /// Thrown when an operation times out.
@@ -206,7 +205,7 @@ class BtcTimeoutException extends BtcException {
 class BtcDiscoveryException extends BtcException {
   /// Creates a [BtcDiscoveryException] with an optional [message].
   const BtcDiscoveryException([super.message = 'Failed to start discovery'])
-      : super(code: 'discoveryFailed');
+    : super(code: 'discoveryFailed');
 }
 
 /// Thrown when an invalid Bluetooth MAC address is provided.
@@ -218,7 +217,7 @@ class BtcAddressException extends BtcException {
 
   /// Creates a [BtcAddressException] for the invalid [address].
   const BtcAddressException(this.address)
-      : super('Invalid Bluetooth address: $address', code: 'invalidAddress');
+    : super('Invalid Bluetooth address: $address', code: 'invalidAddress');
 }
 
 /// Thrown when an invalid UUID is provided.
@@ -230,5 +229,5 @@ class BtcUuidException extends BtcException {
 
   /// Creates a [BtcUuidException] for the invalid [uuid].
   const BtcUuidException(this.uuid)
-      : super('Invalid UUID: $uuid', code: 'invalidUuid');
+    : super('Invalid UUID: $uuid', code: 'invalidUuid');
 }

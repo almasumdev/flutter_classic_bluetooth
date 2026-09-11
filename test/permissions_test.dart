@@ -12,15 +12,15 @@ List<MethodCall> _mockChannel(
   final log = <MethodCall>[];
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(platform.methodChannel, (call) async {
-    log.add(call);
-    if (notImplemented.contains(call.method)) {
-      throw MissingPluginException(
-        'No implementation found for method ${call.method}',
-      );
-    }
-    if (replies.containsKey(call.method)) return replies[call.method];
-    throw PlatformException(code: 'unexpected', message: call.method);
-  });
+        log.add(call);
+        if (notImplemented.contains(call.method)) {
+          throw MissingPluginException(
+            'No implementation found for method ${call.method}',
+          );
+        }
+        if (replies.containsKey(call.method)) return replies[call.method];
+        throw PlatformException(code: 'unexpected', message: call.method);
+      });
   return log;
 }
 
@@ -71,7 +71,9 @@ void main() {
       _mockChannel(platform, {'requestPermissions': 'granted'});
 
       expect(
-          await platform.requestPermissions(_any), BtcPermissionStatus.granted);
+        await platform.requestPermissions(_any),
+        BtcPermissionStatus.granted,
+      );
     });
 
     test('surfaces a permanent denial rather than reporting success', () async {
@@ -87,9 +89,10 @@ void main() {
       final log = _mockChannel(platform, {'requestPermissions': 'granted'});
 
       await platform.requestPermissions({BtcPermission.connect});
-      await platform.requestPermissions(
-        {BtcPermission.scan, BtcPermission.advertise},
-      );
+      await platform.requestPermissions({
+        BtcPermission.scan,
+        BtcPermission.advertise,
+      });
 
       expect(log[0].arguments, {
         'permissions': ['connect'],
@@ -128,11 +131,11 @@ void main() {
     test('maps a concurrent request to a typed exception', () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(platform.methodChannel, (call) async {
-        throw PlatformException(
-          code: 'pendingOperation',
-          message: 'A permission request is already in progress',
-        );
-      });
+            throw PlatformException(
+              code: 'pendingOperation',
+              message: 'A permission request is already in progress',
+            );
+          });
 
       await expectLater(
         platform.requestPermissions(_any),
@@ -145,11 +148,11 @@ void main() {
     test('maps a missing activity to BtcPermissionException', () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(platform.methodChannel, (call) async {
-        throw PlatformException(
-          code: 'permissionDenied',
-          message: 'No activity available to request permissions',
-        );
-      });
+            throw PlatformException(
+              code: 'permissionDenied',
+              message: 'No activity available to request permissions',
+            );
+          });
 
       await expectLater(
         platform.requestPermissions(_any),
@@ -190,15 +193,21 @@ void main() {
     });
 
     test('assumes the toggle is on where it does not apply', () async {
-      _mockChannel(platform, const {},
-          notImplemented: {'isLocationServiceEnabled'});
+      _mockChannel(
+        platform,
+        const {},
+        notImplemented: {'isLocationServiceEnabled'},
+      );
 
       expect(await platform.isLocationServiceEnabled(), isTrue);
     });
 
     test('assumes it is not required where it does not apply', () async {
-      _mockChannel(platform, const {},
-          notImplemented: {'isLocationServiceRequired'});
+      _mockChannel(
+        platform,
+        const {},
+        notImplemented: {'isLocationServiceRequired'},
+      );
 
       expect(await platform.isLocationServiceRequired(), isFalse);
     });
@@ -261,24 +270,26 @@ void main() {
       ]);
     });
 
-    test('defaults to scan plus connect, and honours an explicit set',
-        () async {
-      final fake = _RecordingPlatform();
-      FlutterClassicBluetoothPlatform.instance = fake;
-      addTearDown(() {
-        FlutterClassicBluetoothPlatform.instance =
-            MethodChannelFlutterClassicBluetooth();
-      });
-      final bluetooth = FlutterClassicBluetooth();
+    test(
+      'defaults to scan plus connect, and honours an explicit set',
+      () async {
+        final fake = _RecordingPlatform();
+        FlutterClassicBluetoothPlatform.instance = fake;
+        addTearDown(() {
+          FlutterClassicBluetoothPlatform.instance =
+              MethodChannelFlutterClassicBluetooth();
+        });
+        final bluetooth = FlutterClassicBluetooth();
 
-      await bluetooth.checkPermissions();
-      await bluetooth.checkPermissions(
-        permissions: {BtcPermission.advertise},
-      );
+        await bluetooth.checkPermissions();
+        await bluetooth.checkPermissions(
+          permissions: {BtcPermission.advertise},
+        );
 
-      expect(fake.scopes[0], {BtcPermission.scan, BtcPermission.connect});
-      expect(fake.scopes[1], {BtcPermission.advertise});
-    });
+        expect(fake.scopes[0], {BtcPermission.scan, BtcPermission.connect});
+        expect(fake.scopes[1], {BtcPermission.advertise});
+      },
+    );
 
     test('the base platform interface leaves them unimplemented', () {
       final platform = _UnimplementedPlatform();
@@ -287,9 +298,13 @@ void main() {
       expect(() => platform.requestPermissions(_any), throwsUnimplementedError);
       expect(() => platform.openAppSettings(), throwsUnimplementedError);
       expect(
-          () => platform.isLocationServiceRequired(), throwsUnimplementedError);
+        () => platform.isLocationServiceRequired(),
+        throwsUnimplementedError,
+      );
       expect(
-          () => platform.isLocationServiceEnabled(), throwsUnimplementedError);
+        () => platform.isLocationServiceEnabled(),
+        throwsUnimplementedError,
+      );
       expect(() => platform.openLocationSettings(), throwsUnimplementedError);
     });
   });
@@ -301,7 +316,8 @@ class _RecordingPlatform extends FlutterClassicBluetoothPlatform {
 
   @override
   Future<BtcPermissionStatus> checkPermissions(
-      Set<BtcPermission> permissions) async {
+    Set<BtcPermission> permissions,
+  ) async {
     calls.add('check');
     scopes.add(permissions);
     return BtcPermissionStatus.denied;
@@ -309,7 +325,8 @@ class _RecordingPlatform extends FlutterClassicBluetoothPlatform {
 
   @override
   Future<BtcPermissionStatus> requestPermissions(
-      Set<BtcPermission> permissions) async {
+    Set<BtcPermission> permissions,
+  ) async {
     calls.add('request');
     scopes.add(permissions);
     return BtcPermissionStatus.granted;

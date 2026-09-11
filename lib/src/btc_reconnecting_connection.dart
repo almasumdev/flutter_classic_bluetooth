@@ -101,9 +101,11 @@ class BtcReconnectingConnection {
 
   Future<void> _connect() async {
     if (_closed) return;
-    _setState(_attempt == 0
-        ? BtcReconnectState.connecting
-        : BtcReconnectState.reconnecting);
+    _setState(
+      _attempt == 0
+          ? BtcReconnectState.connecting
+          : BtcReconnectState.reconnecting,
+    );
 
     BtcConnection conn;
     try {
@@ -196,8 +198,7 @@ class BtcReconnectingConnection {
     String text, {
     String newline = '\r\n',
     Encoding encoding = utf8,
-  }) =>
-      sendString('$text$newline', encoding: encoding);
+  }) => sendString('$text$newline', encoding: encoding);
 
   /// Sends [command] over the current connection and awaits its response line.
   ///

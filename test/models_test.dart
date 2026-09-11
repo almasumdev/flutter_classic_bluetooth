@@ -59,10 +59,7 @@ void main() {
         name: 'Name',
         alias: 'Alias',
       );
-      const withName = BtcDevice(
-        address: 'AA:BB:CC:DD:EE:FF',
-        name: 'Name',
-      );
+      const withName = BtcDevice(address: 'AA:BB:CC:DD:EE:FF', name: 'Name');
       const addressOnly = BtcDevice(address: 'AA:BB:CC:DD:EE:FF');
 
       expect(withAlias.displayName, 'Alias');
@@ -71,9 +68,7 @@ void main() {
     });
 
     test('fromMap handles missing optional fields', () {
-      final device = BtcDevice.fromMap({
-        'address': 'AA:BB:CC:DD:EE:FF',
-      });
+      final device = BtcDevice.fromMap({'address': 'AA:BB:CC:DD:EE:FF'});
       expect(device.name, isNull);
       expect(device.alias, isNull);
       expect(device.rssi, isNull);
@@ -152,7 +147,9 @@ void main() {
       expect(restored.canEnableBluetooth, original.canEnableBluetooth);
       expect(restored.canReadConnectionRssi, original.canReadConnectionRssi);
       expect(
-          restored.requiresMfiCertification, original.requiresMfiCertification);
+        restored.requiresMfiCertification,
+        original.requiresMfiCertification,
+      );
       expect(restored.platformNote, original.platformNote);
     });
 
@@ -198,10 +195,7 @@ void main() {
     });
 
     test('BtcUnsupportedException has feature and platform', () {
-      const ex = BtcUnsupportedException(
-        feature: 'discovery',
-        platform: 'iOS',
-      );
+      const ex = BtcUnsupportedException(feature: 'discovery', platform: 'iOS');
       expect(ex.feature, 'discovery');
       expect(ex.platform, 'iOS');
       expect(ex.toString(), contains('discovery'));
@@ -270,38 +264,17 @@ void main() {
     });
 
     test('all exceptions are BtcException', () {
-      expect(
-        const BtcPermissionException(),
-        isA<BtcException>(),
-      );
-      expect(
-        const BtcDisabledException(),
-        isA<BtcException>(),
-      );
-      expect(
-        const BtcWriteException(),
-        isA<BtcException>(),
-      );
-      expect(
-        const BtcTimeoutException(),
-        isA<BtcException>(),
-      );
-      expect(
-        const BtcAddressException('test'),
-        isA<BtcException>(),
-      );
-      expect(
-        const BtcUuidException('test'),
-        isA<BtcException>(),
-      );
+      expect(const BtcPermissionException(), isA<BtcException>());
+      expect(const BtcDisabledException(), isA<BtcException>());
+      expect(const BtcWriteException(), isA<BtcException>());
+      expect(const BtcTimeoutException(), isA<BtcException>());
+      expect(const BtcAddressException('test'), isA<BtcException>());
+      expect(const BtcUuidException('test'), isA<BtcException>());
       expect(
         const BtcUnsupportedException(feature: 'f', platform: 'p'),
         isA<BtcException>(),
       );
-      expect(
-        const BtcConnectionException('test'),
-        isA<BtcException>(),
-      );
+      expect(const BtcConnectionException('test'), isA<BtcException>());
     });
 
     test('all exceptions implement Exception', () {

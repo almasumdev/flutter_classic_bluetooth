@@ -33,12 +33,18 @@ void main() {
       expect(() => platform.discoveryState(), throwsUnimplementedError);
       expect(() => platform.discoveryResults(), throwsUnimplementedError);
       expect(() => platform.getPairedDevices(), throwsUnimplementedError);
-      expect(() => platform.bondDevice('AA:BB:CC:DD:EE:FF'),
-          throwsUnimplementedError);
-      expect(() => platform.unbondDevice('AA:BB:CC:DD:EE:FF'),
-          throwsUnimplementedError);
-      expect(() => platform.bondState('AA:BB:CC:DD:EE:FF'),
-          throwsUnimplementedError);
+      expect(
+        () => platform.bondDevice('AA:BB:CC:DD:EE:FF'),
+        throwsUnimplementedError,
+      );
+      expect(
+        () => platform.unbondDevice('AA:BB:CC:DD:EE:FF'),
+        throwsUnimplementedError,
+      );
+      expect(
+        () => platform.bondState('AA:BB:CC:DD:EE:FF'),
+        throwsUnimplementedError,
+      );
       expect(
         () => platform.connect(
           address: 'AA:BB:CC:DD:EE:FF',
@@ -58,7 +64,9 @@ void main() {
       expect(() => platform.stopServer(0), throwsUnimplementedError);
       expect(() => platform.setDiscoverable(120), throwsUnimplementedError);
       expect(
-          () => platform.getPlatformCapabilities(), throwsUnimplementedError);
+        () => platform.getPlatformCapabilities(),
+        throwsUnimplementedError,
+      );
     });
 
     test('can set platform instance', () {
@@ -204,20 +212,16 @@ void main() {
 
     test('connect throws on invalid UUID', () {
       expect(
-        () => bluetooth.connect(
-          address: 'AA:BB:CC:DD:EE:FF',
-          uuid: 'not-a-uuid',
-        ),
+        () =>
+            bluetooth.connect(address: 'AA:BB:CC:DD:EE:FF', uuid: 'not-a-uuid'),
         throwsA(isA<BtcUuidException>()),
       );
     });
 
     test('connect throws on short UUID', () {
       expect(
-        () => bluetooth.connect(
-          address: 'AA:BB:CC:DD:EE:FF',
-          uuid: '0000-1101',
-        ),
+        () =>
+            bluetooth.connect(address: 'AA:BB:CC:DD:EE:FF', uuid: '0000-1101'),
         throwsA(isA<BtcUuidException>()),
       );
     });
@@ -289,15 +293,18 @@ void main() {
       addTearDown(platform.controller.close);
       final bluetooth = FlutterClassicBluetooth();
 
-      final devices =
-          await bluetooth.scan(timeout: const Duration(milliseconds: 60));
+      final devices = await bluetooth.scan(
+        timeout: const Duration(milliseconds: 60),
+      );
 
       expect(
         devices.map((d) => d.address).toList(),
         ['AA:BB:CC:DD:EE:F1', 'AA:BB:CC:DD:EE:F2'], // strongest first
       );
       expect(
-          devices.first.name, 'One'); // preserved across the rssi-only update
+        devices.first.name,
+        'One',
+      ); // preserved across the rssi-only update
       expect(devices.first.rssi, -35); // updated
     });
   });
@@ -350,8 +357,13 @@ void main() {
           address: 'AA:BB:CC:DD:EE:FF',
           timeout: const Duration(milliseconds: 10),
         ),
-        throwsA(isA<BtcTimeoutException>()
-            .having((e) => e.timeoutMs, 'timeoutMs', 10)),
+        throwsA(
+          isA<BtcTimeoutException>().having(
+            (e) => e.timeoutMs,
+            'timeoutMs',
+            10,
+          ),
+        ),
       );
 
       // Let the late attempt land and clean up inside this test.
@@ -440,6 +452,5 @@ class _LateConnectPlatform extends MockFlutterClassicBluetoothPlatform {
     required String address,
     String uuid = BtcUuid.spp,
     bool secure = true,
-  }) =>
-      Future.delayed(delay, () => connection);
+  }) => Future.delayed(delay, () => connection);
 }

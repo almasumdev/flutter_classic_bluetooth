@@ -25,10 +25,7 @@ import 'package:flutter/services.dart';
 /// {@category Models}
 class BtcFrameSplitter extends StreamTransformerBase<Uint8List, Uint8List> {
   /// Creates a splitter that breaks input on [delimiter] (default: `\n`).
-  const BtcFrameSplitter({
-    this.delimiter = const [0x0A],
-    this.maxFrameLength,
-  });
+  const BtcFrameSplitter({this.delimiter = const [0x0A], this.maxFrameLength});
 
   /// The byte sequence that separates frames.
   final List<int> delimiter;
@@ -107,11 +104,9 @@ extension BtcByteStreamReader on Stream<Uint8List> {
   Stream<Uint8List> frames({
     List<int> delimiter = const [0x0A],
     int? maxFrameLength,
-  }) =>
-      transform(BtcFrameSplitter(
-        delimiter: delimiter,
-        maxFrameLength: maxFrameLength,
-      ));
+  }) => transform(
+    BtcFrameSplitter(delimiter: delimiter, maxFrameLength: maxFrameLength),
+  );
 
   /// Emits decoded text lines. Splits on `\n`, strips a trailing `\r` so both
   /// `\n`- and `\r\n`-terminated devices read cleanly, and decodes each line

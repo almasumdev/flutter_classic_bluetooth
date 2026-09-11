@@ -38,7 +38,8 @@ class BtcReconnectPolicy {
   /// The exponential, capped backoff before reconnect [attempt] (1-based).
   Duration backoffForAttempt(int attempt) {
     final n = attempt < 1 ? 1 : attempt;
-    final ms = initialBackoff.inMilliseconds *
+    final ms =
+        initialBackoff.inMilliseconds *
         math.pow(backoffMultiplier, n - 1).toDouble();
     final capped = math.min(ms, maxBackoff.inMilliseconds.toDouble());
     return Duration(milliseconds: capped.round());

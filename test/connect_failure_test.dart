@@ -6,19 +6,19 @@ import 'package:flutter_test/flutter_test.dart';
 void _failConnectWith(String? cause, {String message = 'Connection failed'}) {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(
-    const MethodChannel('flutter_classic_bluetooth/methods'),
-    (call) async {
-      if (call.method != 'connect') return null;
-      throw PlatformException(
-        code: 'connectionFailed',
-        message: message,
-        details: <String, dynamic>{
-          'address': 'AA:BB:CC:DD:EE:FF',
-          if (cause != null) 'cause': cause,
+        const MethodChannel('flutter_classic_bluetooth/methods'),
+        (call) async {
+          if (call.method != 'connect') return null;
+          throw PlatformException(
+            code: 'connectionFailed',
+            message: message,
+            details: <String, dynamic>{
+              'address': 'AA:BB:CC:DD:EE:FF',
+              if (cause != null) 'cause': cause,
+            },
+          );
         },
       );
-    },
-  );
 }
 
 void main() {
@@ -27,16 +27,14 @@ void main() {
   tearDown(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('flutter_classic_bluetooth/methods'),
-      null,
-    );
+          const MethodChannel('flutter_classic_bluetooth/methods'),
+          null,
+        );
   });
 
   Future<BtcConnectionException> connectAndCatch() async {
     try {
-      await FlutterClassicBluetooth().connect(
-        address: 'AA:BB:CC:DD:EE:FF',
-      );
+      await FlutterClassicBluetooth().connect(address: 'AA:BB:CC:DD:EE:FF');
     } on BtcConnectionException catch (e) {
       return e;
     }
@@ -91,9 +89,7 @@ void main() {
       _failConnectWith('busy');
       Object? caught;
       try {
-        await FlutterClassicBluetooth().connect(
-          address: 'AA:BB:CC:DD:EE:FF',
-        );
+        await FlutterClassicBluetooth().connect(address: 'AA:BB:CC:DD:EE:FF');
       } on BtcException catch (e) {
         caught = e;
       }
