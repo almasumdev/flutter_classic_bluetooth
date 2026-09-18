@@ -218,8 +218,33 @@ public class FlutterClassicBluetoothPlugin: NSObject, FlutterPlugin {
 
     // MARK: - Paired Devices (Connected MFi Accessories)
 
+    /// Whether the missing-protocols warning has been printed this launch.
+    private var warnedAboutProtocols = false
+
+    /// The MFi protocol strings the host app declares in its Info.plist.
+    ///
+    /// iOS hides any accessory whose protocol is not listed here, so an empty
+    /// list means every accessory is filtered out before this plugin sees it.
+    private static var declaredProtocols: [String] {
+        Bundle.main.object(forInfoDictionaryKey: "UISupportedExternalAccessoryProtocols")
+            as? [String] ?? []
+    }
+
     private func handleGetPairedDevices(result: @escaping FlutterResult) {
         let accessories = EAAccessoryManager.shared().connectedAccessories
+        // An empty list is otherwise silent, and the most common cause is a
+        // configuration the app can fix, so say so once, in the console.
+        if accessories.isEmpty && !warnedAboutProtocols
+            && FlutterClassicBluetoothPlugin.declaredProtocols.isEmpty {
+            warnedAboutProtocols = true
+            NSLog(
+                "flutter_classic_bluetooth: getPairedDevices() found no accessories, "
+                + "and Info.plist declares no UISupportedExternalAccessoryProtocols. "
+                + "iOS hides every MFi accessory whose protocol string is not listed "
+                + "there. Add your accessory's protocol string to that array. "
+                + "Devices that are not MFi-certified can never appear on iOS."
+            )
+        }
         let devices = accessories.map { accessory -> [String: Any?] in
             return [
                 "address": String(accessory.connectionID),

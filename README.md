@@ -638,6 +638,20 @@ Apple restricts general Bluetooth Classic access to MFi-certified accessories.
 On iOS the `uuid` you pass to `connect()` is treated as the MFi protocol string,
 and discovery/pairing/server features are unavailable by platform design.
 
+**Why does `getPairedDevices()` return an empty list on iOS?**
+On iOS it lists `EAAccessoryManager.connectedAccessories`, and iOS returns an
+empty list, with no error, in three cases:
+
+1. The device is not MFi-certified. iOS gives apps no access to ordinary serial
+   Bluetooth devices (HC-05 and HC-06 modules, ESP32 boards, most printers and
+   scanners), and there is no public API to change that.
+2. The accessory's protocol string is not listed under
+   `UISupportedExternalAccessoryProtocols` in `ios/Runner/Info.plist`. iOS hides
+   accessories whose protocol the app has not declared. When the list is empty
+   and nothing is declared, the plugin logs a warning in the console saying so.
+3. The accessory is paired but not connected right now. The list holds connected
+   accessories only, not everything ever paired in Settings.
+
 **Can I have several connections open at once?**
 Yes. Each `connect()` (and each accepted server client) returns an independent
 `BtcConnection` with its own input/output streams.

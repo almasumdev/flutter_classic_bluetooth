@@ -1359,6 +1359,10 @@ await connection.finish();
 <h2>Works on Android, not on iOS</h2>
 <p>iOS only reaches MFi certified accessories whose protocol string is declared in <code>Info.plist</code>, and it cannot discover devices at all. A generic HC-05 or ESP32 is unreachable on iOS. This is an Apple restriction, not something a plugin can work around.</p>
 
+<h2>getPairedDevices is empty on iOS</h2>
+<p>On iOS the list is <code>EAAccessoryManager.connectedAccessories</code>, and iOS returns it empty, with no error, in three cases. The device is not MFi certified, so iOS never exposes it. Its protocol string is missing from <code>UISupportedExternalAccessoryProtocols</code> in <code>Info.plist</code>, so iOS filters it out before the app sees it. Or it is paired in Settings but not connected right now, and the list only holds connected accessories.</p>
+<p>When the list is empty and <code>Info.plist</code> declares no protocols at all, the plugin logs a warning to the console that says exactly that, so the configuration case is no longer silent.</p>
+
 <h2>Reporting something</h2>
 <p>If none of this fits, the <a href="https://github.com/almasumdev/flutter_classic_bluetooth/issues">issue tracker</a> is the place. Include the platform and version, the device you are talking to, the exception type and message, and the smallest snippet that reproduces it.</p>
 """ + nxt([("bluetooth-permissions", "Permissions"), ("connect-bluetooth-device", "Connect")]),

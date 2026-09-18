@@ -1,3 +1,23 @@
+## 1.4.1
+
+An empty `getPairedDevices()` on iOS now says why, instead of saying nothing.
+
+### Fixed
+
+- **`getPairedDevices()` on iOS could return an empty list with no clue why.**
+  iOS filters the list silently: it hides accessories that are not MFi, whose
+  protocol string the app has not declared, or that are paired but not
+  connected. When the list comes back empty and `Info.plist` declares no
+  `UISupportedExternalAccessoryProtocols` at all, the plugin now logs a warning
+  to the console saying so and pointing at the fix. It logs once per launch and
+  does not change what the call returns. Thanks to @xbeaufils for the report.
+
+### Docs
+
+- The README FAQ and the troubleshooting page on the docs site now walk through
+  all three reasons iOS returns an empty list, including the one no plugin can
+  change: a device that is not MFi certified is never visible on iOS.
+
 ## 1.4.0
 
 Migrates to built-in Kotlin, so the plugin builds under AGP 9.
