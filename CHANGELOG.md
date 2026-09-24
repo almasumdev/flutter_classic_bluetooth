@@ -1,3 +1,30 @@
+## 1.5.0
+
+Framing for binary protocols, where a delimiter cannot work.
+
+### New
+
+- **`BtcLengthFrameSplitter`** and the matching `input.lengthFrames()` stream
+  extension, for a protocol whose messages each begin with their own length.
+  A delimiter cannot frame binary data, because a payload byte is free to take
+  the delimiter's value; this reads the count instead.
+- A `prefixLength` of 1, 2 or 4 bytes, `bigEndian` for the byte order, and
+  `lengthIncludesPrefix` for protocols whose number counts its own header.
+  `maxFrameLength` rejects an implausible length rather than reserving memory
+  for it.
+- `frame()` on the same object writes an outgoing payload with the matching
+  prefix, so replies go back in the shape the device expects.
+
+### Notes
+
+A partial frame is never emitted: the transformer waits for the whole payload,
+reassembling across chunk boundaries, down to one byte at a time. The tests
+cover that case, a payload made entirely of newline bytes, a prefix split
+across two reads, and a frame-then-split round trip.
+
+This is pure Dart, so unlike the connection paths it is fully covered by the
+test suite rather than only compiled.
+
 ## 1.4.1
 
 An empty `getPairedDevices()` on iOS now says why, instead of saying nothing.

@@ -4,16 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Send and Receive Data over Bluetooth Serial in Flutter</title>
-<meta name="description" content="Read and write bytes on a Bluetooth Classic RFCOMM connection in Flutter, split the input stream into lines or framed packets, and send a command and await its reply.">
+<meta name="description" content="Read and write bytes on a Bluetooth Classic RFCOMM connection in Flutter, split the input stream into lines, delimiter frames or length-prefixed binary frames, and send a command and await its reply.">
 <link rel="canonical" href="https://flutter-classic-bluetooth.web.app/send-receive-data">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Send and Receive Data over Bluetooth Serial in Flutter">
-<meta property="og:description" content="Read and write bytes on a Bluetooth Classic RFCOMM connection in Flutter, split the input stream into lines or framed packets, and send a command and await its reply.">
+<meta property="og:description" content="Read and write bytes on a Bluetooth Classic RFCOMM connection in Flutter, split the input stream into lines, delimiter frames or length-prefixed binary frames, and send a command and await its reply.">
 <meta property="og:url" content="https://flutter-classic-bluetooth.web.app/send-receive-data">
 <meta name="twitter:card" content="summary">
 <link rel="icon" href="/logo.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/style.88cd6437e8.css">
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Send and receive", "description": "Read and write bytes on a Bluetooth Classic RFCOMM connection in Flutter, split the input stream into lines or framed packets, and send a command and await its reply.", "url": "https://flutter-classic-bluetooth.web.app/send-receive-data", "author": {"@type": "Person", "name": "Nurullah Al Masum"}, "about": {"@type": "SoftwareSourceCode", "name": "flutter_classic_bluetooth", "programmingLanguage": "Dart", "codeRepository": "https://github.com/almasumdev/flutter_classic_bluetooth"}}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "Send and receive", "description": "Read and write bytes on a Bluetooth Classic RFCOMM connection in Flutter, split the input stream into lines, delimiter frames or length-prefixed binary frames, and send a command and await its reply.", "url": "https://flutter-classic-bluetooth.web.app/send-receive-data", "author": {"@type": "Person", "name": "Nurullah Al Masum"}, "about": {"@type": "SoftwareSourceCode", "name": "flutter_classic_bluetooth", "programmingLanguage": "Dart", "codeRepository": "https://github.com/almasumdev/flutter_classic_bluetooth"}}</script>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Why does my Bluetooth data arrive split into pieces in Flutter?", "acceptedAnswer": {"@type": "Answer", "text": "RFCOMM is a byte stream, not a message service. One write on the device can arrive as several stream events, or several writes can arrive merged. Split the input with lines or frames rather than treating each event as a message."}}, {"@type": "Question", "name": "How do I read line by line from a Bluetooth serial device?", "acceptedAnswer": {"@type": "Answer", "text": "Call lines on the connection input stream. It buffers across events and emits one string per line, handling both LF and CRLF."}}, {"@type": "Question", "name": "How do I send an AT command and wait for the response?", "acceptedAnswer": {"@type": "Answer", "text": "Use sendAndReceive. It subscribes before writing so a fast reply is not missed, and takes an optional where predicate to skip echoed lines."}}]}</script>
 </head>
 <body>
@@ -72,6 +72,13 @@ await connection.output.allSent;</code></pre></div>
 <div class="codeblock"><pre><code>connection.input
     .frames(delimiter: Uint8List.fromList([0x0D, 0x0A]))
     .listen((frame) =&gt; decode(frame));</code></pre></div>
+<h2 id="frames-that-carry-their-own-length">Frames that carry their own length<a class="anchor" href="#frames-that-carry-their-own-length" aria-label="Link to this section">#</a></h2>
+<p>A delimiter cannot frame a binary protocol, because a payload byte is free to take the delimiter's value. Most binary devices state the length instead, and <code>lengthFrames</code> reads it.</p>
+<div class="codeblock"><pre><code>connection.input
+    .lengthFrames(prefixLength: 2)   // two big-endian bytes, then the payload
+    .listen(decode);</code></pre></div>
+<p>Pick a <code>prefixLength</code> of 1, 2 or 4, pass <code>bigEndian: false</code> for a little-endian device, and <code>lengthIncludesPrefix: true</code> when the number counts its own header bytes. A partial frame is never emitted, and <code>maxFrameLength</code> guards against a desynchronised stream reserving memory without bound. The same <code>BtcLengthFrameSplitter</code> will <code>frame()</code> an outgoing payload, so replies go back in the shape the device expects.</p>
+
 <h2 id="command-and-response">Command and response<a class="anchor" href="#command-and-response" aria-label="Link to this section">#</a></h2>
 <p>Write a command, wait for the reply, in one call. This is the common shape for AT command devices.</p>
 <div class="codeblock"><pre><code>final version = await connection.sendAndReceive('AT+GMR');
@@ -102,7 +109,7 @@ connection.input.lines(encoding: latin1).listen(handleLine);</code></pre></div>
     </article>
   </main>
 
-  <aside class="toc"><nav aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ul><li><a href="#install">Install</a></li><li><a href="#writing">Writing</a></li><li><a href="#reading-raw-bytes">Reading raw bytes</a></li><li><a href="#bytes-are-not-messages">Bytes are not messages</a></li><li><a href="#line-based-protocols">Line based protocols</a></li><li><a href="#binary-frames">Binary frames</a></li><li><a href="#command-and-response">Command and response</a></li><li><a href="#text-encodings">Text encodings</a></li><li><a href="#decoding-without-splitting">Decoding without splitting</a></li></ul></nav></aside>
+  <aside class="toc"><nav aria-labelledby="toc-h"><h2 id="toc-h">On this page</h2><ul><li><a href="#install">Install</a></li><li><a href="#writing">Writing</a></li><li><a href="#reading-raw-bytes">Reading raw bytes</a></li><li><a href="#bytes-are-not-messages">Bytes are not messages</a></li><li><a href="#line-based-protocols">Line based protocols</a></li><li><a href="#binary-frames">Binary frames</a></li><li><a href="#frames-that-carry-their-own-length">Frames that carry their own length</a></li><li><a href="#command-and-response">Command and response</a></li><li><a href="#text-encodings">Text encodings</a></li><li><a href="#decoding-without-splitting">Decoding without splitting</a></li></ul></nav></aside>
 </div>
 
 <script src="/docs.029eb910a1.js" defer></script>

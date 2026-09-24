@@ -3,6 +3,8 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart';
 
+import 'btc_length_frame_splitter.dart';
+
 /// Splits a byte stream into frames separated by a [delimiter], buffering across
 /// chunk boundaries so a frame may span several reads. The delimiter is stripped
 /// from the emitted frames.
@@ -106,6 +108,28 @@ extension BtcByteStreamReader on Stream<Uint8List> {
     int? maxFrameLength,
   }) => transform(
     BtcFrameSplitter(delimiter: delimiter, maxFrameLength: maxFrameLength),
+  );
+
+  /// Splits this stream into frames that each begin with their own length
+  /// (the prefix stripped), reassembling frames that span multiple chunks.
+  /// See [BtcLengthFrameSplitter], which is the one to use for a binary
+  /// protocol whose payload bytes could take any value.
+  ///
+  /// ```dart
+  /// connection.input.lengthFrames(prefixLength: 2).listen(decode);
+  /// ```
+  Stream<Uint8List> lengthFrames({
+    int prefixLength = 1,
+    bool bigEndian = true,
+    bool lengthIncludesPrefix = false,
+    int? maxFrameLength,
+  }) => transform(
+    BtcLengthFrameSplitter(
+      prefixLength: prefixLength,
+      bigEndian: bigEndian,
+      lengthIncludesPrefix: lengthIncludesPrefix,
+      maxFrameLength: maxFrameLength,
+    ),
   );
 
   /// Emits decoded text lines. Splits on `\n`, strips a trailing `\r` so both

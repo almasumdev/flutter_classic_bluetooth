@@ -660,7 +660,7 @@ print("defined connect")
 PAGES.append(dict(
     slug="send-receive-data",
     title="Send and Receive Data over Bluetooth Serial in Flutter",
-    desc="Read and write bytes on a Bluetooth Classic RFCOMM connection in Flutter, split the input stream into lines or framed packets, and send a command and await its reply.",
+    desc="Read and write bytes on a Bluetooth Classic RFCOMM connection in Flutter, split the input stream into lines, delimiter frames or length-prefixed binary frames, and send a command and await its reply.",
     h1="Send and receive",
     lede="A connection is a byte stream in and an ordered sink out. The work is turning bytes into messages.",
     body=INSTALL + """
@@ -708,6 +708,15 @@ connection.input
     .frames(delimiter: Uint8List.fromList([0x0D, 0x0A]))
     .listen((frame) => decode(frame));
 """) + """
+<h2>Frames that carry their own length</h2>
+<p>A delimiter cannot frame a binary protocol, because a payload byte is free to take the delimiter's value. Most binary devices state the length instead, and <code>lengthFrames</code> reads it.</p>
+""" + pre("""
+connection.input
+    .lengthFrames(prefixLength: 2)   // two big-endian bytes, then the payload
+    .listen(decode);
+""") + """
+<p>Pick a <code>prefixLength</code> of 1, 2 or 4, pass <code>bigEndian: false</code> for a little-endian device, and <code>lengthIncludesPrefix: true</code> when the number counts its own header bytes. A partial frame is never emitted, and <code>maxFrameLength</code> guards against a desynchronised stream reserving memory without bound. The same <code>BtcLengthFrameSplitter</code> will <code>frame()</code> an outgoing payload, so replies go back in the shape the device expects.</p>
+
 <h2>Command and response</h2>
 <p>Write a command, wait for the reply, in one call. This is the common shape for AT command devices.</p>
 """ + pre("""

@@ -184,7 +184,7 @@ list; [contributions](#support-and-feedback) welcome.
 - ✅ **Pair / unpair** with a bond-state stream
 - ✅ Adapter **state stream**, **enable/disable**, and **set discoverable**
 - ✅ Streamed byte I/O: ordered write sink (`writeString` / `writeLine` / `writeBytes` / `addStream`)
-- ✅ Line/frame reader: split serial input on a delimiter (`input.lines()` / `input.frames()`)
+- ✅ Line/frame reader: split serial input on a delimiter or on a length prefix (`input.lines()` / `input.frames()` / `input.lengthFrames()`)
 - ✅ Request/response helper: `sendAndReceive()` for AT-command / line protocols
 - ✅ **Connection-state** lifecycle stream
 - ✅ Runtime **platform-capability** matrix
@@ -462,7 +462,19 @@ connection.input.lines().listen((line) => print('> $line'));
 connection.input
     .frames(delimiter: const [0x03]) // e.g. ETX-terminated frames
     .listen((frame) => print('frame: ${frame.length} bytes'));
+
+// Binary protocol where each message states its own length.
+connection.input
+    .lengthFrames(prefixLength: 2) // two big-endian bytes, then the payload
+    .listen(decode);
 ```
+
+A delimiter cannot frame a binary protocol, because a payload byte is free to
+take the delimiter's value. `lengthFrames` reads the count instead: pick
+`prefixLength` 1, 2 or 4, set `bigEndian: false` for little-endian devices, and
+`lengthIncludesPrefix: true` when the number counts its own header. The same
+`BtcLengthFrameSplitter` will `frame()` an outgoing payload for you, so replies
+go back in the shape the device expects.
 
 Works the same on an auto-reconnecting link: `link.input.lines()`.
 

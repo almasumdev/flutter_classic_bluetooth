@@ -107,6 +107,7 @@ library;
 
 export 'src/btc_uuid.dart';
 export 'src/btc_frame_splitter.dart';
+export 'src/btc_length_frame_splitter.dart';
 export 'src/btc_reconnecting_connection.dart';
 export 'src/flutter_classic_bluetooth.dart';
 export 'src/platform_interface.dart';
