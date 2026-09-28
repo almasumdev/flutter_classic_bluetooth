@@ -416,6 +416,14 @@ class FlutterClassicBluetooth {
   /// | Linux | Yes |
   /// | iOS | ⚠️ (MFi accessories via protocol string) |
   ///
+  /// On iOS the [uuid] is the accessory's MFi protocol string, such as
+  /// `com.vendor.protocol`, not an RFCOMM service UUID. Passing a UUID there
+  /// still works when the accessory advertises exactly one protocol: that one
+  /// is used, so the same call runs on both platforms. When it advertises
+  /// several, the attempt fails with [BtcConnectFailure.serviceNotSupported]
+  /// and lists them, because picking for you could open the wrong service.
+  /// [BtcDevice.uuids] holds an iOS accessory's protocol strings.
+  ///
   /// Throws [BtcAddressException] if [address] is not a valid MAC.
   /// Throws [BtcUuidException] if [uuid] is not a valid UUID.
   /// Throws [BtcTimeoutException] if [timeout] elapses first.

@@ -170,7 +170,11 @@ public class FlutterClassicBluetoothPlugin: NSObject, FlutterPlugin {
                 ))
                 return
             }
-            handleConnect(protocolString: proto, result: result)
+            handleConnect(
+                protocolString: proto,
+                address: args?["address"] as? String,
+                result: result
+            )
 
         case "disconnect":
             guard let id = args?["id"] as? Int else {
@@ -262,22 +266,83 @@ public class FlutterClassicBluetoothPlugin: NSObject, FlutterPlugin {
 
     // MARK: - Connection
 
-    private func handleConnect(protocolString: String, result: @escaping FlutterResult) {
+    /// True when [value] is a canonical 128-bit UUID.
+    ///
+    /// That is what Android wants for RFCOMM and what iOS never uses: an MFi
+    /// protocol string is reverse-DNS text such as `com.vendor.protocol`. So a
+    /// UUID here means the caller wrote the Android form.
+    private static func isServiceUuid(_ value: String) -> Bool {
+        let pattern =
+            "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}"
+            + "-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        return value.range(of: pattern, options: .regularExpression) != nil
+    }
+
+    private func handleConnect(
+        protocolString: String,
+        address: String?,
+        result: @escaping FlutterResult
+    ) {
         let accessories = EAAccessoryManager.shared().connectedAccessories
-        guard let accessory = accessories.first(where: { $0.protocolStrings.contains(protocolString) }) else {
+        var accessory = accessories.first { $0.protocolStrings.contains(protocolString) }
+        var resolvedProtocol = protocolString
+
+        // The same Dart code runs on both platforms, so the uuid is often the
+        // RFCOMM one Android needs. The accessory knows its own protocol, so
+        // use that when there is exactly one and nothing to mistake it for.
+        if accessory == nil && Self.isServiceUuid(protocolString) {
+            let addressed = address.map { addr in
+                accessories.filter { String($0.connectionID) == addr }
+            } ?? []
+            let pool = addressed.isEmpty ? accessories : addressed
+            let protocols = pool.flatMap { $0.protocolStrings }
+            if pool.count == 1 && protocols.count == 1 {
+                accessory = pool[0]
+                resolvedProtocol = protocols[0]
+            } else if !protocols.isEmpty {
+                result(FlutterError(
+                    code: "connectionFailed",
+                    message: "On iOS the uuid is the accessory's MFi protocol string, "
+                        + "not a Bluetooth service UUID. More than one protocol is "
+                        + "available, so pass one of these as connect(uuid:): "
+                        + protocols.joined(separator: ", "),
+                    details: [
+                        "cause": "serviceNotSupported",
+                        "protocol": protocolString,
+                        "available": protocols
+                    ]
+                ))
+                return
+            }
+        }
+
+        guard let accessory else {
+            let available = accessories.flatMap { $0.protocolStrings }
+            let hint = available.isEmpty
+                ? "No MFi accessory is connected. Check that it is paired and "
+                    + "connected, and that its protocol string is listed under "
+                    + "UISupportedExternalAccessoryProtocols in Info.plist."
+                : "Connected accessories advertise: "
+                    + available.joined(separator: ", ") + "."
             result(FlutterError(
                 code: "connectionFailed",
-                message: "No MFi accessory found with protocol: \(protocolString)",
-                details: ["protocol": protocolString]
+                message: "No MFi accessory found with protocol: "
+                    + "\(protocolString). \(hint)",
+                details: [
+                    "cause": Self.isServiceUuid(protocolString)
+                        ? "serviceNotSupported" : "unreachable",
+                    "protocol": protocolString,
+                    "available": available
+                ]
             ))
             return
         }
 
-        guard let session = EASession(accessory: accessory, forProtocol: protocolString) else {
+        guard let session = EASession(accessory: accessory, forProtocol: resolvedProtocol) else {
             result(FlutterError(
                 code: "connectionFailed",
                 message: "Failed to create session for accessory",
-                details: ["protocol": protocolString]
+                details: ["cause": "unreachable", "protocol": resolvedProtocol]
             ))
             return
         }

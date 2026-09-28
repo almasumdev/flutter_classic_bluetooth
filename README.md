@@ -664,6 +664,23 @@ empty list, with no error, in three cases:
 3. The accessory is paired but not connected right now. The list holds connected
    accessories only, not everything ever paired in Settings.
 
+**On iOS, `connect()` says "No MFi accessory found with protocol".**
+On iOS the `uuid` is the accessory's MFi protocol string, such as
+`com.vendor.protocol`, not an RFCOMM service UUID. The default,
+`BtcUuid.spp`, is the Android form. From 1.6.0 the plugin resolves this for
+you when the accessory advertises exactly one protocol, so the same call works
+on both platforms. When it advertises several it fails and names them, since
+choosing for you could open the wrong service. The protocol strings of an iOS
+accessory are in `BtcDevice.uuids`:
+
+```dart
+final device = (await bluetooth.getPairedDevices()).first;
+await bluetooth.connect(
+  address: device.address,
+  uuid: Platform.isIOS ? device.uuids.first : BtcUuid.spp,
+);
+```
+
 **Can I have several connections open at once?**
 Yes. Each `connect()` (and each accepted server client) returns an independent
 `BtcConnection` with its own input/output streams.

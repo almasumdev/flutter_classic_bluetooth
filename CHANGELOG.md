@@ -1,3 +1,28 @@
+## 1.6.0
+
+Connecting on iOS no longer needs the call to be written differently.
+
+### Fixed
+
+- **`connect()` failed on iOS whenever the `uuid` was an RFCOMM service UUID.**
+  On iOS that argument is the accessory's MFi protocol string, so the default
+  `BtcUuid.spp`, which is right on Android, could never match and the attempt
+  failed with "No MFi accessory found with protocol". The plugin now resolves
+  it: when the addressed accessory advertises exactly one protocol, that one is
+  used, so the same call runs on both platforms. Thanks to @xbeaufils for the
+  report.
+- When an accessory advertises several protocols the attempt still fails, but
+  it now names them and reports `BtcConnectFailure.serviceNotSupported` rather
+  than `unknown`. Choosing one silently could open the wrong service.
+- The "no accessory found" message now lists the protocols that are actually
+  available, or says that nothing is connected and points at the `Info.plist`
+  entry, instead of only repeating what was asked for.
+
+### Docs
+
+- `connect`'s dartdoc, the README FAQ and the troubleshooting page explain what
+  the `uuid` means on iOS and where to find an accessory's protocol strings.
+
 ## 1.5.0
 
 Framing for binary protocols, where a delimiter cannot work.
