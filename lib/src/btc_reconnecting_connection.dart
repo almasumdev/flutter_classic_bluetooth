@@ -177,10 +177,61 @@ class BtcReconnectingConnection {
     _current = null;
   }
 
+  /// Waits until the link is connected, then returns.
+  ///
+  /// [send] throws while a reconnect is in flight, so a caller that simply
+  /// wants its write to go out once the link is back can await this first:
+  ///
+  /// ```dart
+  /// await conn.waitConnected(timeout: const Duration(seconds: 10));
+  /// await conn.sendLine('STATUS?');
+  /// ```
+  ///
+  /// Returns immediately if already connected. Throws
+  /// [BtcConnectionException] if the link is closed or has given up, if it
+  /// reaches either of those states while waiting, or if [timeout] elapses
+  /// first. Without a [timeout] it waits as long as reconnects keep going.
+  Future<void> waitConnected({Duration? timeout}) async {
+    if (isConnected) return;
+    if (_state == BtcReconnectState.closed) {
+      throw const BtcConnectionException('Connection closed');
+    }
+    if (_state == BtcReconnectState.failed) {
+      throw BtcConnectionException(
+        'Reconnect gave up after $_attempt attempts: $_lastError',
+      );
+    }
+
+    var stream = state.where(
+      (s) =>
+          s == BtcReconnectState.connected ||
+          s == BtcReconnectState.closed ||
+          s == BtcReconnectState.failed,
+    );
+    if (timeout != null) {
+      stream = stream.timeout(
+        timeout,
+        onTimeout: (sink) => sink.addError(
+          const BtcConnectionException('Timed out waiting to connect'),
+        ),
+      );
+    }
+
+    final reached = await stream.first;
+    if (reached == BtcReconnectState.connected) return;
+    if (reached == BtcReconnectState.closed) {
+      throw const BtcConnectionException('Connection closed');
+    }
+    throw BtcConnectionException(
+      'Reconnect gave up after $_attempt attempts: $_lastError',
+    );
+  }
+
   /// Sends [data] over the current connection.
   ///
   /// Throws [BtcConnectionException] if the link is not connected right now
-  /// (e.g. mid-reconnect). Check [isConnected] or watch [state] first.
+  /// (e.g. mid-reconnect). Await [waitConnected] first if the write should go
+  /// out once the link is back, or check [isConnected] or watch [state].
   Future<void> send(Uint8List data) {
     final conn = _current;
     if (conn == null || _state != BtcReconnectState.connected) {

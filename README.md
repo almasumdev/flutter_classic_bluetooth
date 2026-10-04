@@ -550,6 +550,10 @@ link.input.listen((bytes) => print('RX ${bytes.length} bytes'));
 
 if (link.isConnected) await link.sendString('PING\r\n');
 
+// Or hold the write until the link is back up.
+await link.waitConnected(timeout: const Duration(seconds: 10));
+await link.sendString('PING\r\n');
+
 // ...when done
 await link.close(); // stop reconnecting and release everything
 ```

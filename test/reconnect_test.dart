@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_classic_bluetooth/flutter_classic_bluetooth.dart';
 
@@ -151,6 +152,190 @@ void main() {
 
       expect(link.currentState, BtcReconnectState.closed);
       expect(calls, after); // no attempts after close
+    });
+  });
+  group('waitConnected', () {
+    /// A connection object good enough to stand in for a live link.
+    BtcConnection fakeConnection() => BtcConnection(
+      id: 1,
+      address: 'AA:BB:CC:DD:EE:FF',
+      methodChannel: const MethodChannel('flutter_classic_bluetooth/methods'),
+    );
+
+    test('returns as soon as the link comes up', () async {
+      var attempts = 0;
+      final link = BtcReconnectingConnection(
+        address: 'AA:BB:CC:DD:EE:FF',
+        connector: () async {
+          // Refuse once so the caller really has to wait.
+          if (attempts++ == 0) {
+            throw const BtcConnectionException('refused');
+          }
+          return fakeConnection();
+        },
+        policy: const BtcReconnectPolicy(
+          initialBackoff: Duration(milliseconds: 5),
+          maxBackoff: Duration(milliseconds: 5),
+          backoffMultiplier: 1.0,
+          connectTimeout: null,
+        ),
+      )..start();
+      addTearDown(link.close);
+
+      await link.waitConnected(timeout: const Duration(seconds: 2));
+      expect(link.isConnected, isTrue);
+    });
+
+    test('returns straight away when already connected', () async {
+      final link = BtcReconnectingConnection(
+        address: 'AA:BB:CC:DD:EE:FF',
+        connector: () async => fakeConnection(),
+      )..start();
+      addTearDown(link.close);
+
+      await link.waitConnected();
+      // A second call must not hang waiting for another state change.
+      await link.waitConnected(timeout: const Duration(milliseconds: 50));
+      expect(link.isConnected, isTrue);
+    });
+
+    test('a write placed behind it goes out once the link is up', () async {
+      var attempts = 0;
+      final link = BtcReconnectingConnection(
+        address: 'AA:BB:CC:DD:EE:FF',
+        connector: () async {
+          if (attempts++ == 0) {
+            throw const BtcConnectionException('refused');
+          }
+          return fakeConnection();
+        },
+        policy: const BtcReconnectPolicy(
+          initialBackoff: Duration(milliseconds: 5),
+          maxBackoff: Duration(milliseconds: 5),
+          backoffMultiplier: 1.0,
+          connectTimeout: null,
+        ),
+      )..start();
+      addTearDown(link.close);
+
+      // Catch the write at the channel so it needs no real device.
+      const channel = MethodChannel('flutter_classic_bluetooth/methods');
+      final written = <String>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            written.add(call.method);
+            return true;
+          });
+      addTearDown(
+        () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null),
+      );
+
+      // Without the wait this throws, which is what the doc used to leave to
+      // the caller to handle.
+      expect(
+        () => link.sendString('hi'),
+        throwsA(isA<BtcConnectionException>()),
+      );
+      await link.waitConnected(timeout: const Duration(seconds: 2));
+      await link.sendString('hi');
+      expect(written, contains('write'));
+    });
+
+    test('throws once the retries are exhausted', () async {
+      final link = BtcReconnectingConnection(
+        address: 'AA:BB:CC:DD:EE:FF',
+        connector: () async => throw const BtcConnectionException('refused'),
+        policy: const BtcReconnectPolicy(
+          maxAttempts: 1,
+          initialBackoff: Duration(milliseconds: 5),
+          maxBackoff: Duration(milliseconds: 5),
+          backoffMultiplier: 1.0,
+          connectTimeout: null,
+        ),
+      )..start();
+      addTearDown(link.close);
+
+      await expectLater(
+        link.waitConnected(timeout: const Duration(seconds: 2)),
+        throwsA(isA<BtcConnectionException>()),
+      );
+    });
+
+    test('throws when it has already given up', () async {
+      final link = BtcReconnectingConnection(
+        address: 'AA:BB:CC:DD:EE:FF',
+        connector: () async => throw const BtcConnectionException('refused'),
+        policy: const BtcReconnectPolicy(
+          maxAttempts: 0,
+          initialBackoff: Duration(milliseconds: 5),
+          maxBackoff: Duration(milliseconds: 5),
+          backoffMultiplier: 1.0,
+          connectTimeout: null,
+        ),
+      )..start();
+      addTearDown(link.close);
+
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      expect(link.currentState, BtcReconnectState.failed);
+      await expectLater(
+        link.waitConnected(),
+        throwsA(isA<BtcConnectionException>()),
+      );
+    });
+
+    test('throws when the link is closed while waiting', () async {
+      final link = BtcReconnectingConnection(
+        address: 'AA:BB:CC:DD:EE:FF',
+        connector: () async => throw const BtcConnectionException('refused'),
+        policy: const BtcReconnectPolicy(
+          initialBackoff: Duration(milliseconds: 50),
+          maxBackoff: Duration(milliseconds: 50),
+          backoffMultiplier: 1.0,
+          connectTimeout: null,
+        ),
+      )..start();
+
+      // The matcher is attached before the close, so the rejection is awaited
+      // rather than surfacing as an unhandled error in the gap.
+      final waiting = expectLater(
+        link.waitConnected(),
+        throwsA(isA<BtcConnectionException>()),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      await link.close();
+      await waiting;
+    });
+
+    test('throws when it is already closed', () async {
+      final link = BtcReconnectingConnection(
+        address: 'AA:BB:CC:DD:EE:FF',
+        connector: () async => throw const BtcConnectionException('refused'),
+      );
+      await link.close();
+      await expectLater(
+        link.waitConnected(),
+        throwsA(isA<BtcConnectionException>()),
+      );
+    });
+
+    test('throws when the timeout runs out first', () async {
+      final link = BtcReconnectingConnection(
+        address: 'AA:BB:CC:DD:EE:FF',
+        connector: () async => throw const BtcConnectionException('refused'),
+        policy: const BtcReconnectPolicy(
+          initialBackoff: Duration(seconds: 30),
+          maxBackoff: Duration(seconds: 30),
+          backoffMultiplier: 1.0,
+          connectTimeout: null,
+        ),
+      )..start();
+      addTearDown(link.close);
+
+      await expectLater(
+        link.waitConnected(timeout: const Duration(milliseconds: 20)),
+        throwsA(isA<BtcConnectionException>()),
+      );
     });
   });
 }

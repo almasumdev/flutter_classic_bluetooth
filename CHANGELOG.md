@@ -1,3 +1,24 @@
+## 1.7.0
+
+A write can wait for a reconnect instead of being refused.
+
+### New
+
+- **`BtcReconnectingConnection.waitConnected({timeout})`**. `send` throws while
+  a reconnect is in flight, so sending anything during a drop meant watching
+  `state` and queueing the write yourself. Await this first and the write goes
+  out as soon as the link is back:
+
+  ```dart
+  await link.waitConnected(timeout: const Duration(seconds: 10));
+  await link.sendLine('STATUS?');
+  ```
+
+  It returns straight away when already connected, and throws if the link is
+  closed, has given up after exhausting `maxAttempts`, reaches either of those
+  while waiting, or the timeout runs out first. Without a timeout it waits as
+  long as the reconnects keep going.
+
 ## 1.6.0
 
 Connecting on iOS no longer needs the call to be written differently.
