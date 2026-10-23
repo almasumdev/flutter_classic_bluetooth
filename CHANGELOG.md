@@ -1,3 +1,18 @@
+## 1.7.1
+
+### Fixed
+
+- **Splitting a long frame slowed down with the square of its length.**
+  `frames()`, `lines()` and `BtcFrameSplitter` searched the whole buffer for
+  the delimiter again on every incoming chunk, and an RFCOMM link delivers a
+  long frame a few bytes at a time. A 128 KB frame in 20-byte chunks took about
+  340 ms; it now takes about 20 ms, and the cost grows in a straight line. The
+  search resumes where the previous chunk stopped, backing up just far enough
+  for a multi-byte delimiter that straddles two chunks.
+- **An empty delimiter never split anything**, so the buffer grew for the life
+  of the connection. It is now rejected with an `ArgumentError` when the
+  stream is bound.
+
 ## 1.7.0
 
 A write can wait for a reconnect instead of being refused.

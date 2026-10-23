@@ -27,6 +27,8 @@ import 'btc_length_frame_splitter.dart';
 /// {@category Models}
 class BtcFrameSplitter extends StreamTransformerBase<Uint8List, Uint8List> {
   /// Creates a splitter that breaks input on [delimiter] (default: `\n`).
+  ///
+  /// Throws [ArgumentError] when the stream is bound if [delimiter] is empty.
   const BtcFrameSplitter({this.delimiter = const [0x0A], this.maxFrameLength});
 
   /// The byte sequence that separates frames.
@@ -37,22 +39,38 @@ class BtcFrameSplitter extends StreamTransformerBase<Uint8List, Uint8List> {
 
   @override
   Stream<Uint8List> bind(Stream<Uint8List> stream) {
+    // An empty delimiter matches nowhere, so nothing would ever be emitted and
+    // the buffer would grow for the life of the connection.
+    if (delimiter.isEmpty) {
+      throw ArgumentError.value(delimiter, 'delimiter', 'must not be empty');
+    }
     final buffer = <int>[];
+    // How much of the head of [buffer] has already been searched without
+    // finding a delimiter. A serial link delivers a long frame a few bytes at
+    // a time, and searching it from the start on every chunk made the work
+    // grow with the square of the frame's length.
+    var scanned = 0;
     StreamSubscription<Uint8List>? sub;
     late StreamController<Uint8List> out;
 
     void onData(Uint8List chunk) {
       buffer.addAll(chunk);
       var start = 0;
-      var idx = _indexOf(buffer, delimiter, start);
+      // A delimiter may straddle the old and new bytes, so the search backs up
+      // by one less than its length.
+      var from = scanned - (delimiter.length - 1);
+      if (from < 0) from = 0;
+      var idx = _indexOf(buffer, delimiter, from);
       while (idx >= 0) {
         out.add(Uint8List.fromList(buffer.sublist(start, idx)));
         start = idx + delimiter.length;
         idx = _indexOf(buffer, delimiter, start);
       }
       if (start > 0) buffer.removeRange(0, start);
+      scanned = buffer.length;
       if (maxFrameLength != null && buffer.length > maxFrameLength!) {
         buffer.clear();
+        scanned = 0;
         out.addError(
           StateError('Frame exceeded maxFrameLength ($maxFrameLength bytes)'),
         );
