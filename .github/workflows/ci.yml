@@ -172,11 +172,7 @@ jobs:
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-sa.json"
           set +e
-          # Pinned: 15.34.1 checks that the Hosting API is enabled before
-          # deploying, which needs serviceusage.services.get. The deploy service
-          # account does not hold it, so every deploy failed with a 403. Unpin
-          # once the account has roles/serviceusage.serviceUsageConsumer.
-          out=$(npx --yes firebase-tools@15.34.0 deploy \
+          out=$(npx --yes firebase-tools@latest deploy \
             --only hosting:flutter-classic-bluetooth --project my-pub-packages --non-interactive 2>&1)
           code=$?
           printf '%s\n' "$out"
