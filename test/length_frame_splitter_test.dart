@@ -239,4 +239,86 @@ void main() {
       ]);
     });
   });
+  group('Bursts', () {
+    test('many frames in one chunk stay whole and in order', () async {
+      const splitter = BtcLengthFrameSplitter(prefixLength: 2);
+      final wire = <int>[
+        for (var i = 0; i < 500; i++) ...splitter.frame([i & 0xFF, i >> 8]),
+      ];
+      final frames = await _run(splitter, [wire]);
+      expect(frames, [
+        for (var i = 0; i < 500; i++) [i & 0xFF, i >> 8],
+      ]);
+    });
+
+    test('a partial frame after a burst waits for the rest of it', () async {
+      const splitter = BtcLengthFrameSplitter();
+      final frames = await _run(splitter, [
+        [
+          ...splitter.frame([1]),
+          ...splitter.frame([2]),
+          3,
+          7,
+        ],
+        [8, 9],
+      ]);
+      expect(frames, [
+        [1],
+        [2],
+        [7, 8, 9],
+      ]);
+    });
+
+    test('a length split across chunks after a burst is still read', () async {
+      const splitter = BtcLengthFrameSplitter(prefixLength: 2);
+      final frames = await _run(splitter, [
+        [
+          ...splitter.frame([1]),
+          0,
+        ],
+        [2, 5, 6],
+      ]);
+      expect(frames, [
+        [1],
+        [5, 6],
+      ]);
+    });
+
+    test('frames before a bad length are delivered, then it errors', () async {
+      const splitter = BtcLengthFrameSplitter(maxFrameLength: 2);
+      final errors = <Object>[];
+      final frames = await _run(splitter, [
+        [
+          ...splitter.frame([1]),
+          9,
+          0,
+          0,
+        ],
+        [
+          ...splitter.frame([4]),
+        ],
+      ], errors: errors);
+      expect(frames, [
+        [1],
+        [4],
+      ]);
+      expect(errors, hasLength(1));
+      expect(errors.single, isA<StateError>());
+    });
+
+    test('a large burst takes time in line with its size', () async {
+      // The consumed bytes used to be dropped per frame, moving the rest of the
+      // buffer each time: 40,000 frames took about 3400 ms.
+      const splitter = BtcLengthFrameSplitter();
+      final wire = <int>[
+        for (var i = 0; i < 40000; i++) ...[1, i & 0xFF],
+      ];
+      final sw = Stopwatch()..start();
+      final frames = await _run(splitter, [wire]);
+      sw.stop();
+      expect(frames, hasLength(40000));
+      expect(frames.last, [39999 & 0xFF]);
+      expect(sw.elapsedMilliseconds, lessThan(1000));
+    });
+  });
 }

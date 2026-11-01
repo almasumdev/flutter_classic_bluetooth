@@ -63,8 +63,12 @@ class BtcLengthFrameSplitter
 
     void onData(Uint8List chunk) {
       buffer.addAll(chunk);
-      while (buffer.length >= prefixLength) {
-        var payloadLength = _readLength(buffer);
+      // Frames are read by position and the consumed bytes dropped once at the
+      // end. Dropping them per frame moved the rest of the buffer every time,
+      // so a burst of small frames took time with the square of its size.
+      var start = 0;
+      while (buffer.length - start >= prefixLength) {
+        var payloadLength = _readLength(buffer, start);
         if (lengthIncludesPrefix) payloadLength -= prefixLength;
 
         // A negative or oversized length means the stream is not where it
@@ -82,10 +86,15 @@ class BtcLengthFrameSplitter
         }
 
         final total = prefixLength + payloadLength;
-        if (buffer.length < total) return; // the rest is still in flight
-        out.add(Uint8List.fromList(buffer.sublist(prefixLength, total)));
-        buffer.removeRange(0, total);
+        if (buffer.length - start < total) break; // the rest is in flight
+        out.add(
+          Uint8List.fromList(
+            buffer.sublist(start + prefixLength, start + total),
+          ),
+        );
+        start += total;
       }
+      if (start > 0) buffer.removeRange(0, start);
     }
 
     out = StreamController<Uint8List>(
@@ -108,10 +117,10 @@ class BtcLengthFrameSplitter
   }
 
   /// Reads the length prefix from the front of [buffer].
-  int _readLength(List<int> buffer) {
+  int _readLength(List<int> buffer, int at) {
     var value = 0;
     for (var i = 0; i < prefixLength; i++) {
-      final byte = buffer[bigEndian ? i : prefixLength - 1 - i];
+      final byte = buffer[at + (bigEndian ? i : prefixLength - 1 - i)];
       value = (value << 8) | byte;
     }
     return value;

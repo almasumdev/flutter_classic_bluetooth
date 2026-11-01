@@ -1,3 +1,15 @@
+## 1.7.2
+
+### Fixed
+
+- **A burst of small length-prefixed frames slowed down with the square of its
+  size.** `BtcLengthFrameSplitter` and `lengthFrames()` removed each frame from
+  the front of the buffer as they read it, which moved every remaining byte. A
+  single read holding 40,000 two-byte frames took about 3400 ms and 80,000 took
+  about 17 seconds. Frames are now read by position and the consumed bytes
+  dropped once, so the cost grows in a straight line. Frames, their order and
+  the error on a bad length are unchanged.
+
 ## 1.7.1
 
 ### Fixed
