@@ -1,3 +1,16 @@
+## 1.7.4
+
+### Fixed
+
+- **Some paired SPP printers never connected on Windows.** `connect()` asked
+  Winsock to resolve the service UUID itself, and with some devices that
+  lookup fails with `WSAEADDRNOTAVAIL` (10049) even though the device is
+  paired and its serial service works: Windows had created a COM port for it,
+  and a socket opened on RFCOMM channel 1 printed. On that error only,
+  `connect()` now retries on the channel an SDP query reports and, for SPP,
+  on channel 1. Other failures end as before. The `connectionFailed` message
+  now carries the WSA error codes, and its details add `wsaError`.
+
 ## 1.7.3
 
 ### Fixed
