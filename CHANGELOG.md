@@ -1,3 +1,13 @@
+## 1.7.3
+
+### Fixed
+
+- **One failed write broke the connection's output for good.** Every later
+  write failed with the same error without being sent, and `finish()` threw
+  before disconnecting, which left the native link open. A failed write now
+  reports its error only to its own caller, later writes still go out, and
+  `finish()` and `close()` always disconnect.
+
 ## 1.7.2
 
 ### Fixed

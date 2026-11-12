@@ -34,20 +34,34 @@ class BtcStreamSink {
   ///
   /// Writes are chained so they execute in the order they are added.
   /// The returned future completes when this particular write finishes.
+  /// If the write fails, the error is reported only through the returned
+  /// future. Writes queued after it still go out.
   /// Throws [StateError] if the sink has been closed.
   Future<void> add(Uint8List data) {
     if (_closed) {
       throw StateError('Cannot write to a closed BtcStreamSink');
     }
 
-    _lastWrite = _lastWrite.then((_) {
-      return _methodChannel.invokeMethod('write', {
+    final previous = _lastWrite;
+    final done = Completer<void>();
+    _lastWrite = done.future;
+    return _write(previous, data, done);
+  }
+
+  Future<void> _write(
+    Future<void> previous,
+    Uint8List data,
+    Completer<void> done,
+  ) async {
+    await previous;
+    try {
+      await _methodChannel.invokeMethod<void>('write', {
         'id': connectionId,
         'data': data,
       });
-    });
-
-    return _lastWrite;
+    } finally {
+      done.complete();
+    }
   }
 
   /// Queues raw [bytes] to be written, accepting any `List<int>`.
@@ -80,11 +94,17 @@ class BtcStreamSink {
 
   /// Resolves when all writes queued so far have completed.
   ///
+  /// It does not fail because an earlier write failed. Each write reports its
+  /// own error through the future returned by [add].
+  ///
   /// Unlike [close], this does not mark the sink as closed. More data can be
   /// queued afterwards.
   Future<void> get allSent => _lastWrite;
 
   /// Waits for all pending writes to complete, then marks this sink as closed.
+  ///
+  /// It does not fail because a write failed, so a caller can always go on to
+  /// disconnect.
   Future<void> close() async {
     if (_closed) return;
     _closed = true;

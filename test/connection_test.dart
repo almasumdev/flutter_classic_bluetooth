@@ -127,6 +127,94 @@ void main() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(methodChannel, null);
     });
+
+    test(
+      'a failed write reports its own error and later writes still reach the platform',
+      () async {
+        final methodChannel = const MethodChannel(
+          'flutter_classic_bluetooth/methods',
+        );
+        final calls = <int>[];
+        final messenger =
+            TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+        messenger.setMockMethodCallHandler(methodChannel, (call) async {
+          final byte = call.arguments['data'][0] as int;
+          calls.add(byte);
+          if (byte == 1) {
+            throw PlatformException(code: 'writeFailed', message: 'first');
+          }
+          return null;
+        });
+
+        final sink = BtcStreamSink(
+          connectionId: 1,
+          methodChannel: methodChannel,
+        );
+
+        await expectLater(
+          sink.add(Uint8List.fromList([1])),
+          throwsA(
+            isA<PlatformException>().having(
+              (e) => e.message,
+              'message',
+              'first',
+            ),
+          ),
+        );
+        await sink.add(Uint8List.fromList([2]));
+        await sink.add(Uint8List.fromList([3]));
+
+        expect(calls, [1, 2, 3]);
+
+        messenger.setMockMethodCallHandler(methodChannel, null);
+      },
+    );
+
+    test('close completes after a failed write', () async {
+      final methodChannel = const MethodChannel(
+        'flutter_classic_bluetooth/methods',
+      );
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(methodChannel, (call) async {
+        throw PlatformException(code: 'writeFailed');
+      });
+
+      final sink = BtcStreamSink(connectionId: 1, methodChannel: methodChannel);
+
+      await expectLater(
+        sink.add(Uint8List.fromList([1])),
+        throwsA(isA<PlatformException>()),
+      );
+      await sink.close();
+
+      expect(sink.isClosed, isTrue);
+
+      messenger.setMockMethodCallHandler(methodChannel, null);
+    });
+
+    test('allSent completes after a failed write', () async {
+      final methodChannel = const MethodChannel(
+        'flutter_classic_bluetooth/methods',
+      );
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(methodChannel, (call) async {
+        throw PlatformException(code: 'writeFailed');
+      });
+
+      final sink = BtcStreamSink(connectionId: 1, methodChannel: methodChannel);
+
+      await expectLater(
+        sink.add(Uint8List.fromList([1])),
+        throwsA(isA<PlatformException>()),
+      );
+      await sink.allSent;
+
+      expect(sink.isClosed, isFalse);
+
+      messenger.setMockMethodCallHandler(methodChannel, null);
+    });
   });
 
   // ── BtcConnection ────────────────────────────────────────────────────
@@ -262,6 +350,38 @@ void main() {
         messenger.setMockStreamHandler(stateChannel, null);
       },
     );
+
+    test('finish still disconnects after a failed write', () async {
+      const method = MethodChannel('flutter_classic_bluetooth/methods');
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      final calls = <String>[];
+      messenger.setMockMethodCallHandler(method, (call) async {
+        calls.add(call.method);
+        if (call.method == 'write') {
+          throw PlatformException(code: 'writeFailed');
+        }
+        return null;
+      });
+
+      final conn = BtcConnection(
+        id: 7,
+        address: 'AA:BB:CC:DD:EE:FF',
+        methodChannel: method,
+      );
+
+      await expectLater(
+        conn.output.add(Uint8List.fromList([1])),
+        throwsA(isA<PlatformException>()),
+      );
+      await conn.finish();
+
+      expect(calls, ['write', 'disconnect']);
+      expect(conn.state, BtcConnectionState.disconnected);
+
+      conn.dispose();
+      messenger.setMockMethodCallHandler(method, null);
+    });
 
     test('readRssi sends getConnectionRssi and returns the value', () async {
       const method = MethodChannel('flutter_classic_bluetooth/methods');
