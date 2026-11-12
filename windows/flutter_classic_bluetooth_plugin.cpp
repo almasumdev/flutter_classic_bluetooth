@@ -14,6 +14,7 @@
 #include <cstdio>
 #include <memory>
 #include <sstream>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -31,6 +32,76 @@ using flutter::EncodableMap;
 using flutter::EncodableValue;
 
 namespace {
+// Serial Port Profile service class, the one serial printers expose.
+constexpr GUID kSppServiceClass = {
+    0x00001101, 0x0000, 0x1000, {0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB}};
+
+// Asks SDP which RFCOMM channel [service] runs on. Returns 0 when the lookup
+// fails or the record carries no channel.
+ULONG LookupRfcommChannel(BTH_ADDR address, const GUID& service) {
+  wchar_t context[32];
+  swprintf_s(context, L"(%02X:%02X:%02X:%02X:%02X:%02X)",
+             static_cast<unsigned>((address >> 40) & 0xFF),
+             static_cast<unsigned>((address >> 32) & 0xFF),
+             static_cast<unsigned>((address >> 24) & 0xFF),
+             static_cast<unsigned>((address >> 16) & 0xFF),
+             static_cast<unsigned>((address >> 8) & 0xFF),
+             static_cast<unsigned>(address & 0xFF));
+  WSAQUERYSETW query = {};
+  query.dwSize = sizeof(query);
+  query.lpServiceClassId = const_cast<GUID*>(&service);
+  query.dwNameSpace = NS_BTH;
+  query.lpszContext = context;
+  HANDLE lookup = nullptr;
+  if (WSALookupServiceBeginW(&query, LUP_FLUSHCACHE | LUP_RETURN_ADDR,
+                             &lookup) != 0) {
+    return 0;
+  }
+  ULONG channel = 0;
+  alignas(WSAQUERYSETW) BYTE buffer[4096];
+  DWORD size = sizeof(buffer);
+  auto* result = reinterpret_cast<WSAQUERYSETW*>(buffer);
+  if (WSALookupServiceNextW(lookup, LUP_RETURN_ADDR, &size, result) == 0 &&
+      result->lpcsaBuffer != nullptr &&
+      result->lpcsaBuffer->RemoteAddr.lpSockaddr != nullptr) {
+    channel = reinterpret_cast<SOCKADDR_BTH*>(
+                  result->lpcsaBuffer->RemoteAddr.lpSockaddr)->port;
+  }
+  WSALookupServiceEnd(lookup);
+  return channel;
+}
+
+// One RFCOMM connect attempt. Port 0 lets Windows resolve [service] through
+// SDP; any other port connects to that channel directly. On failure, returns
+// INVALID_SOCKET and stores the WSA error in [error].
+SOCKET TryRfcommConnect(BTH_ADDR address, const GUID& service, ULONG port,
+                        bool secure, int* error) {
+  SOCKET sock = socket(AF_BTH, SOCK_STREAM, BTHPROTO_RFCOMM);
+  if (sock == INVALID_SOCKET) {
+    *error = WSAGetLastError();
+    return INVALID_SOCKET;
+  }
+  // Honor the secure flag: request an authenticated (and thus encrypted)
+  // RFCOMM link before connecting. Best-effort, ignored if unsupported.
+  if (secure) {
+    ULONG auth = TRUE;
+    setsockopt(sock, SOL_RFCOMM, SO_BTH_AUTHENTICATE,
+               reinterpret_cast<const char*>(&auth), sizeof(auth));
+  }
+  SOCKADDR_BTH addr = {};
+  addr.addressFamily = AF_BTH;
+  addr.btAddr = address;
+  addr.serviceClassId = port == 0 ? service : GUID{};
+  addr.port = port;
+  if (connect(sock, reinterpret_cast<SOCKADDR*>(&addr), sizeof(addr)) ==
+      SOCKET_ERROR) {
+    *error = WSAGetLastError();
+    closesocket(sock);
+    return INVALID_SOCKET;
+  }
+  return sock;
+}
+
 // Safely extract an int id from an EncodableValue, tolerating the codec
 // delivering it as either int32_t or int64_t. Avoids throwing std::get.
 bool ExtractInt(const EncodableValue& value, int* out) {
@@ -521,38 +592,44 @@ void FlutterClassicBluetoothPlugin::HandleConnect(
   auto result_ptr = std::shared_ptr<flutter::MethodResult<EncodableValue>>(std::move(result));
   std::weak_ptr<UiThreadDispatcher> weak_dispatcher = dispatcher_;
   std::thread([this, bth_addr, uuid, address, secure, result_ptr, weak_dispatcher]() {
-    SOCKET sock = socket(AF_BTH, SOCK_STREAM, BTHPROTO_RFCOMM);
+    // Some devices (seen on a cheap serial thermal printer) make Windows'
+    // own service-class resolution fail with WSAEADDRNOTAVAIL although the
+    // service works. Only for that error, retry on the channel SDP reports,
+    // and for SPP fall back to channel 1, where serial printers listen. Other
+    // errors (out of range, refused) fail as before, without the extra wait.
+    const GUID service = StringToGuid(uuid);
+    int uuid_error = 0;
+    int channel_error = 0;
+    SOCKET sock = TryRfcommConnect(bth_addr, service, 0, secure, &uuid_error);
+    if (sock == INVALID_SOCKET && uuid_error == WSAEADDRNOTAVAIL) {
+      std::vector<ULONG> channels;
+      const ULONG sdp_channel = LookupRfcommChannel(bth_addr, service);
+      if (sdp_channel != 0) channels.push_back(sdp_channel);
+      if (sdp_channel != 1 && IsEqualGUID(service, kSppServiceClass)) {
+        channels.push_back(1);
+      }
+      for (ULONG channel : channels) {
+        sock = TryRfcommConnect(bth_addr, service, channel, secure,
+                                &channel_error);
+        if (sock != INVALID_SOCKET) break;
+      }
+    }
+
     if (sock == INVALID_SOCKET) {
       auto d = weak_dispatcher.lock();
-      if (d) d->Post([result_ptr, address]() {
-        result_ptr->Error("connectionFailed", "Failed to create socket",
-                          EncodableValue(EncodableMap{
-                              {EncodableValue("address"), EncodableValue(address)}}));
-      });
-      return;
-    }
-
-    // Honor the secure flag: request an authenticated (and thus encrypted)
-    // RFCOMM link before connecting. Best-effort, ignored if unsupported.
-    if (secure) {
-      ULONG auth = TRUE;
-      setsockopt(sock, SOL_RFCOMM, SO_BTH_AUTHENTICATE,
-                 reinterpret_cast<const char*>(&auth), sizeof(auth));
-    }
-
-    SOCKADDR_BTH addr = {};
-    addr.addressFamily = AF_BTH;
-    addr.btAddr = bth_addr;
-    addr.serviceClassId = StringToGuid(uuid);
-    addr.port = 0;
-
-    if (connect(sock, (SOCKADDR*)&addr, sizeof(addr)) == SOCKET_ERROR) {
-      closesocket(sock);
-      auto d = weak_dispatcher.lock();
-      if (d) d->Post([result_ptr, address]() {
-        result_ptr->Error("connectionFailed", "Failed to connect",
-                          EncodableValue(EncodableMap{
-                              {EncodableValue("address"), EncodableValue(address)}}));
+      if (d) d->Post([result_ptr, address, uuid_error, channel_error]() {
+        std::string message =
+            "Failed to connect (WSA error " + std::to_string(uuid_error);
+        if (channel_error != 0) {
+          message += ", WSA error " + std::to_string(channel_error) +
+                     " on the channel fallback";
+        }
+        message += ")";
+        result_ptr->Error(
+            "connectionFailed", message,
+            EncodableValue(EncodableMap{
+                {EncodableValue("address"), EncodableValue(address)},
+                {EncodableValue("wsaError"), EncodableValue(uuid_error)}}));
       });
       return;
     }
