@@ -217,6 +217,17 @@ public class FlutterClassicBluetoothPlugin: NSObject, FlutterPlugin {
             result(nil)
             return
         }
+        // IOBluetoothDeviceInquiry does not retain its delegate, and its dealloc
+        // still touches it. Retire the previous inquiry while its delegate is
+        // alive, otherwise replacing `inquiryDelegate` first leaves the old
+        // inquiry pointing at freed memory and releasing it crashes.
+        if let previous = inquiry {
+            previous.delegate = nil
+            previous.stop()
+            inquiry = nil
+        }
+        inquiryDelegate = nil
+
         discovering = true
         discoveryStateHandler?.eventSink?(true)
 

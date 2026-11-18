@@ -1,3 +1,15 @@
+## 1.7.5
+
+### Fixed
+
+- **A second `startDiscovery()` crashed release builds on macOS.** Starting a
+  new inquiry replaced the old inquiry's delegate before releasing the old
+  `IOBluetoothDeviceInquiry`. The inquiry does not retain its delegate, so its
+  `dealloc` touched freed memory and the app died with `EXC_BAD_ACCESS` in
+  `-[IOBluetoothDeviceInquiry dealloc]`. Debug builds usually survived because
+  the delegate was freed later. The previous inquiry is now detached from its
+  delegate, stopped and released before the new one is created.
+
 ## 1.7.4
 
 ### Fixed
