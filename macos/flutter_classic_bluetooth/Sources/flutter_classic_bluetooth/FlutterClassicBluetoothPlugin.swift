@@ -220,6 +220,12 @@ public class FlutterClassicBluetoothPlugin: NSObject, FlutterPlugin {
         discovering = true
         discoveryStateHandler?.eventSink?(true)
 
+        // The inquiry holds its delegate unretained and touches it in dealloc,
+        // so detach the previous inquiry before its delegate is released.
+        inquiry?.stop()
+        inquiry?.delegate = nil
+        inquiry = nil
+
         let delegate = DeviceInquiryDelegate(
             onDeviceFound: { [weak self] device in
                 guard let self = self else { return }
