@@ -1,3 +1,14 @@
+## 1.7.5
+
+### Fixed
+
+- **Starting discovery a second time crashed the app on macOS.** The old
+  device inquiry keeps an unretained pointer to its delegate and uses it when
+  it is freed, but the delegate was released first. The previous inquiry is
+  now stopped and detached before either is released, so a second scan works,
+  and a late completion from the old scan can no longer end the new one.
+  Thanks to @ahmeddhus for the fix.
+
 ## 1.7.4
 
 ### Fixed
