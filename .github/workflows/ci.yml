@@ -60,7 +60,7 @@ jobs:
             os: ubuntu-latest
             build: apk --debug
           - platform: linux
-            os: ubuntu-latest
+            os: ubuntu-22.04
             build: linux --debug
           # Release, because a debug INSTALL step trips over a googletest PDB
           # copy in the Flutter Windows runner template. The C++ is compiled

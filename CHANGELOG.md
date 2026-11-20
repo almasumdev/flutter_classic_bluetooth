@@ -1,3 +1,14 @@
+## 1.7.6
+
+### Fixed
+
+- **The Linux build failed on compilers that default to C++14.** The plugin
+  uses C++17 but only took the language level from the app, and Flutter's
+  Linux template asks for C++14. On Debian 12 or Ubuntu 22.04 with clang 14,
+  every app using the plugin then failed to build. The plugin now asks for
+  C++17 on its own target, and the app's settings are unchanged. Thanks to
+  @SensorSimpl for the report and the fix.
+
 ## 1.7.5
 
 ### Fixed
